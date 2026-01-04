@@ -1,10 +1,10 @@
-// src/app/admin/dashboard/page.tsx
+// app/admin/dashboard/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { Users, DollarSign, Megaphone, TrendingUp } from 'lucide-react';
 import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import StatCard from '@/components/admin/StatCard';
 import QuickActions from '@/components/admin/QuickActions';
@@ -100,12 +100,10 @@ export default function AdminDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
-          Selamat datang kembali, {user?.name || 'Admin'}! 👋
-        </p>
+        <p className="text-gray-600 mt-1">Selamat kembali, {user?.name}!</p>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Jumlah Ahli"
@@ -113,13 +111,21 @@ export default function AdminDashboard() {
           icon={Users}
           iconColor="text-blue-600"
           iconBgColor="bg-blue-100"
+          trend={{
+            value: "+12%",
+            isPositive: true,
+          }}
         />
         <StatCard
           title="Jumlah Derma"
           value={formatCurrency(stats.totalDonations)}
           icon={DollarSign}
-          iconColor="text-green-600"
-          iconBgColor="bg-green-100"
+          iconColor="text-emerald-600"
+          iconBgColor="bg-emerald-100"
+          trend={{
+            value: "+23%",
+            isPositive: true,
+          }}
         />
         <StatCard
           title="Pengumuman Aktif"
@@ -132,56 +138,24 @@ export default function AdminDashboard() {
           title="Derma Bulan Ini"
           value={formatCurrency(stats.monthlyDonations)}
           icon={TrendingUp}
-          iconColor="text-emerald-600"
-          iconBgColor="bg-emerald-100"
+          iconColor="text-orange-600"
+          iconBgColor="bg-orange-100"
+          trend={{
+            value: "+8%",
+            isPositive: true,
+          }}
         />
       </div>
 
       {/* Quick Actions */}
       <QuickActions />
 
-      {/* Recent Activity / Info Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Welcome Card */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg shadow-lg p-6 text-white">
-          <h3 className="text-xl font-bold mb-2">Sistem Pengurusan Masjid</h3>
-          <p className="text-emerald-50 mb-4">
-            Anda kini menggunakan Panel Pentadbir Masjid Al-Falah. Sistem ini membolehkan anda mengurus ahli, derma, dan pengumuman dengan mudah.
-          </p>
-          <div className="flex space-x-4">
-            <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm flex-1">
-              <p className="text-emerald-100 text-sm">Status Sistem</p>
-              <p className="font-semibold text-lg">✓ Aktif</p>
-            </div>
-            <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm flex-1">
-              <p className="text-emerald-100 text-sm">Versi</p>
-              <p className="font-semibold text-lg">1.0.0</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Ringkasan Pantas
-          </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b">
-              <span className="text-gray-600">Ahli Berdaftar</span>
-              <span className="font-semibold text-gray-900">{stats.totalMembers}</span>
-            </div>
-            <div className="flex items-center justify-between py-3 border-b">
-              <span className="text-gray-600">Derma Terkumpul</span>
-              <span className="font-semibold text-green-600">
-                {formatCurrency(stats.totalDonations)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-gray-600">Pengumuman</span>
-              <span className="font-semibold text-gray-900">{stats.activeAnnouncements}</span>
-            </div>
-          </div>
-        </div>
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Aktiviti Terkini
+        </h3>
+        <p className="text-gray-600">Tiada aktiviti terkini</p>
       </div>
     </div>
   );

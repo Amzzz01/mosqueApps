@@ -1,10 +1,10 @@
-// src/app/admin/members/page.tsx
+// app/admin/members/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/config';
 import { Member } from '@/types';
 import { Search, Plus, Edit, Trash2, Eye, Download } from 'lucide-react';
 import { formatICNumber, formatPhoneNumber } from '@/lib/utils/formatters';
@@ -38,6 +38,8 @@ export default function MembersPage() {
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate(),
         dateOfBirth: doc.data().dateOfBirth?.toDate(),
+        registrationDate: doc.data().registrationDate?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
       })) as Member[];
       
       setMembers(membersData);
@@ -56,7 +58,7 @@ export default function MembersPage() {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.icNumber.includes(searchTerm) ||
         member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.phoneNumber.includes(searchTerm)
@@ -65,7 +67,7 @@ export default function MembersPage() {
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(member => member.status === statusFilter);
+      filtered = filtered.filter(member => member.membershipStatus === statusFilter);
     }
 
     setFilteredMembers(filtered);
@@ -89,12 +91,12 @@ export default function MembersPage() {
   const exportToCSV = () => {
     const headers = ['Nama', 'No. KP', 'Telefon', 'Email', 'Alamat', 'Status'];
     const rows = filteredMembers.map(member => [
-      member.name,
+      member.fullName,
       member.icNumber,
       member.phoneNumber,
       member.email || '-',
       member.address,
-      member.status === 'active' ? 'Aktif' : 'Tidak Aktif',
+      member.membershipStatus === 'active' ? 'Aktif' : 'Tidak Aktif',
     ]);
 
     const csvContent = [
@@ -107,6 +109,8 @@ export default function MembersPage() {
     link.href = URL.createObjectURL(blob);
     link.download = `ahli-masjid-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
+
+    toast.success('Data berjaya diexport');
   };
 
   if (loading) {
@@ -217,7 +221,7 @@ export default function MembersPage() {
                 filteredMembers.map((member) => (
                   <tr key={member.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{member.name}</div>
+                      <div className="font-medium text-gray-900">{member.fullName}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {formatICNumber(member.icNumber)}
@@ -231,12 +235,12 @@ export default function MembersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          member.status === 'active'
+                          member.membershipStatus === 'active'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {member.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                        {member.membershipStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -256,7 +260,7 @@ export default function MembersPage() {
                           <Edit className="h-5 w-5" />
                         </Link>
                         <button
-                          onClick={() => handleDelete(member.id!, member.name)}
+                          onClick={() => handleDelete(member.id!, member.fullName)}
                           className="text-red-600 hover:text-red-900 p-1"
                           title="Padam"
                         >

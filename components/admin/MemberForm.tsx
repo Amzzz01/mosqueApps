@@ -1,10 +1,10 @@
-// src/components/admin/MemberForm.tsx
+// components/admin/MemberForm.tsx
 'use client';
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/config';
 import { Member } from '@/types';
 import { Save, X } from 'lucide-react';
 import { validateICNumber, validatePhoneNumber } from '@/lib/utils/validators';
@@ -19,43 +19,37 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: member?.name || '',
+    fullName: member?.fullName || '',
     icNumber: member?.icNumber || '',
-    dateOfBirth: member?.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : '',
-    gender: member?.gender || 'male',
+    dateOfBirth: member?.dateOfBirth 
+      ? new Date(member.dateOfBirth as Date).toISOString().split('T')[0] 
+      : '',
+    gender: member?.gender || 'male' as 'male' | 'female',
     phoneNumber: member?.phoneNumber || '',
     email: member?.email || '',
     address: member?.address || '',
-    postcode: member?.postcode || '',
-    city: member?.city || '',
-    state: member?.state || '',
-    status: member?.status || 'active',
-    notes: member?.notes || '',
+    kariahArea: member?.kariahArea || '',
+    membershipStatus: member?.membershipStatus || 'active' as 'active' | 'inactive',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const malaysianStates = [
-    'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan',
-    'Pahang', 'Pulau Pinang', 'Perak', 'Perlis', 'Selangor',
-    'Terengganu', 'Sabah', 'Sarawak', 'W.P. Kuala Lumpur',
-    'W.P. Labuan', 'W.P. Putrajaya'
-  ];
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error for this field
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Nama diperlukan';
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Nama diperlukan';
     }
 
     if (!validateICNumber(formData.icNumber)) {
@@ -78,18 +72,6 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
       newErrors.address = 'Alamat diperlukan';
     }
 
-    if (!formData.postcode.trim()) {
-      newErrors.postcode = 'Poskod diperlukan';
-    }
-
-    if (!formData.city.trim()) {
-      newErrors.city = 'Bandar diperlukan';
-    }
-
-    if (!formData.state) {
-      newErrors.state = 'Negeri diperlukan';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -106,14 +88,22 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
 
     try {
       const memberData = {
-        ...formData,
+        fullName: formData.fullName,
+        icNumber: formData.icNumber,
         dateOfBirth: new Date(formData.dateOfBirth),
+        gender: formData.gender,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email || undefined,
+        address: formData.address,
+        kariahArea: formData.kariahArea || undefined,
+        membershipStatus: formData.membershipStatus,
         updatedAt: serverTimestamp(),
       };
 
       if (mode === 'create') {
         await addDoc(collection(db, 'members'), {
           ...memberData,
+          registrationDate: serverTimestamp(),
           createdAt: serverTimestamp(),
         });
         toast.success('Ahli berjaya ditambah');
@@ -139,22 +129,24 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
           Maklumat Peribadi
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Name */}
+          {/* Full Name */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nama Penuh <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              name="name"
-              value={formData.name}
+              name="fullName"
+              value={formData.fullName}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+                errors.fullName ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Nama penuh ahli"
             />
-            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            {errors.fullName && (
+              <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
+            )}
           </div>
 
           {/* IC Number */}
@@ -172,7 +164,9 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
               }`}
               placeholder="123456-12-1234"
             />
-            {errors.icNumber && <p className="mt-1 text-sm text-red-600">{errors.icNumber}</p>}
+            {errors.icNumber && (
+              <p className="mt-1 text-sm text-red-600">{errors.icNumber}</p>
+            )}
           </div>
 
           {/* Date of Birth */}
@@ -189,7 +183,9 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
                 errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>}
+            {errors.dateOfBirth && (
+              <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
+            )}
           </div>
 
           {/* Gender */}
@@ -216,7 +212,7 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
           Maklumat Hubungan
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Phone */}
+          {/* Phone Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               No. Telefon <span className="text-red-500">*</span>
@@ -231,7 +227,9 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
               }`}
               placeholder="012-3456789"
             />
-            {errors.phoneNumber && <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>}
+            {errors.phoneNumber && (
+              <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+            )}
           </div>
 
           {/* Email */}
@@ -247,7 +245,7 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="email@example.com"
+              placeholder="email@contoh.com"
             />
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
@@ -265,106 +263,48 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
                 errors.address ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Alamat lengkap"
+              placeholder="Alamat penuh"
             />
-            {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+            {errors.address && (
+              <p className="mt-1 text-sm text-red-600">{errors.address}</p>
+            )}
           </div>
 
-          {/* Postcode */}
-          <div>
+          {/* Kariah Area */}
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Poskod <span className="text-red-500">*</span>
+              Kawasan Kariah
             </label>
             <input
               type="text"
-              name="postcode"
-              value={formData.postcode}
+              name="kariahArea"
+              value={formData.kariahArea}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
-                errors.postcode ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="43650"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              placeholder="Contoh: Taman Sri Serdang"
             />
-            {errors.postcode && <p className="mt-1 text-sm text-red-600">{errors.postcode}</p>}
-          </div>
-
-          {/* City */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bandar <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
-                errors.city ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Bandar Baru Bangi"
-            />
-            {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
-          </div>
-
-          {/* State */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Negeri <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
-                errors.state ? 'border-red-500' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Pilih Negeri</option>
-              {malaysianStates.map(state => (
-                <option key={state} value={state}>{state}</option>
-              ))}
-            </select>
-            {errors.state && <p className="mt-1 text-sm text-red-600">{errors.state}</p>}
           </div>
         </div>
       </div>
 
-      {/* Additional Information */}
+      {/* Status */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Maklumat Tambahan
+          Status Keahlian
         </h3>
-        <div className="space-y-6">
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="active">Aktif</option>
-              <option value="inactive">Tidak Aktif</option>
-            </select>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Catatan
-            </label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-              placeholder="Catatan tambahan (opsional)"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Status
+          </label>
+          <select
+            name="membershipStatus"
+            value={formData.membershipStatus}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+          >
+            <option value="active">Aktif</option>
+            <option value="inactive">Tidak Aktif</option>
+          </select>
         </div>
       </div>
 
@@ -372,7 +312,7 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
       <div className="flex justify-end space-x-4">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push('/admin/members')}
           className="flex items-center space-x-2 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           disabled={loading}
         >
@@ -381,8 +321,8 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
         </button>
         <button
           type="submit"
+          className="flex items-center space-x-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-gray-400"
           disabled={loading}
-          className="flex items-center space-x-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
         >
           <Save className="h-5 w-5" />
           <span>{loading ? 'Menyimpan...' : 'Simpan'}</span>
