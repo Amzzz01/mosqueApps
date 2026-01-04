@@ -1,4 +1,4 @@
-// src/components/admin/AdminSidebar.tsx
+// components/admin/AdminSidebar.tsx
 'use client';
 
 import Link from 'next/link';
@@ -32,6 +32,19 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Helper function to get user initials
+  const getUserInitial = () => {
+    if (!user) return 'A';
+    const name = user.displayName || user.email || 'Admin';
+    return name.charAt(0).toUpperCase();
+  };
+
+  // Helper function to get display name
+  const getDisplayName = () => {
+    if (!user) return 'Admin';
+    return user.displayName || user.email || 'Admin';
+  };
 
   return (
     <aside 
@@ -70,10 +83,10 @@ export default function AdminSidebar() {
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold">
-              {user.name.charAt(0).toUpperCase()}
+              {getUserInitial()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-sm font-medium truncate">{getDisplayName()}</p>
               <p className="text-xs text-gray-400 truncate">{user.email}</p>
             </div>
           </div>

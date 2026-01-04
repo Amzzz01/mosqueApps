@@ -1,4 +1,4 @@
-// src/lib/auth.ts
+// lib/auth.ts
 import { 
   signInWithEmailAndPassword,
   signOut,
@@ -11,8 +11,8 @@ import { auth, db } from './firebase/config';
 export interface AdminUser {
   uid: string;
   email: string;
-  name: string;
-  role: 'admin';
+  displayName: string;
+  role: string;
   createdAt: Date;
 }
 
@@ -25,8 +25,8 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Verify user has admin role in Firestore
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    // Verify user has admin role in Firestore - CHECK adminUsers collection
+    const userDoc = await getDoc(doc(db, 'adminUsers', user.uid));
     
     if (!userDoc.exists()) {
       await signOut(auth);
@@ -35,15 +35,16 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
 
     const userData = userDoc.data();
     
-    if (userData.role !== 'admin') {
+    // Check if user is active
+    if (!userData.active) {
       await signOut(auth);
-      throw new Error('Akses ditolak. Anda bukan pentadbir.');
+      throw new Error('Akaun tidak aktif. Sila hubungi pentadbir.');
     }
 
     return {
       uid: user.uid,
       email: user.email!,
-      name: userData.name,
+      displayName: userData.displayName || userData.name || 'Admin',
       role: userData.role,
       createdAt: userData.createdAt?.toDate() || new Date(),
     };
@@ -57,6 +58,8 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
       throw new Error('Format email tidak sah');
     } else if (error.code === 'auth/too-many-requests') {
       throw new Error('Terlalu banyak cubaan. Sila cuba sebentar lagi.');
+    } else if (error.code === 'auth/invalid-credential') {
+      throw new Error('Email atau kata laluan salah');
     }
     
     throw error;
@@ -86,18 +89,23 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
   }
 
   try {
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userDoc = await getDoc(doc(db, 'adminUsers', user.uid));
     
-    if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+    if (!userDoc.exists()) {
       return null;
     }
 
     const userData = userDoc.data();
     
+    // Check if user is active
+    if (!userData.active) {
+      return null;
+    }
+    
     return {
       uid: user.uid,
       email: user.email!,
-      name: userData.name,
+      displayName: userData.displayName || userData.name || 'Admin',
       role: userData.role,
       createdAt: userData.createdAt?.toDate() || new Date(),
     };
@@ -120,19 +128,25 @@ export function subscribeToAuthChanges(
     }
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      const userDoc = await getDoc(doc(db, 'adminUsers', firebaseUser.uid));
       
-      if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+      if (!userDoc.exists()) {
         callback(null);
         return;
       }
 
       const userData = userDoc.data();
       
+      // Check if user is active
+      if (!userData.active) {
+        callback(null);
+        return;
+      }
+      
       callback({
         uid: firebaseUser.uid,
         email: firebaseUser.email!,
-        name: userData.name,
+        displayName: userData.displayName || userData.name || 'Admin',
         role: userData.role,
         createdAt: userData.createdAt?.toDate() || new Date(),
       });

@@ -1,8 +1,8 @@
-// src/components/admin/ProtectedRoute.tsx
+// components/admin/ProtectedRoute.tsx
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -12,12 +12,15 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !user) {
+    // Only redirect if not loading and user is not authenticated
+    // And we're not already on the login page
+    if (!loading && !user && pathname !== '/admin/login') {
       router.push('/admin/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   // Show loading state
   if (loading) {
