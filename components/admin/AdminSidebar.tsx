@@ -14,30 +14,42 @@ import {
   LogOut,
   Building2,
   X,
-  Menu
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 interface AdminSidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  collapsed: boolean;
+  mobileOpen: boolean;
+  onClose: () => void;
+  onToggleCollapse: () => void;
 }
 
-export default function AdminSidebar({ isOpen = true, onClose }: AdminSidebarProps) {
+export default function AdminSidebar({
+  collapsed,
+  mobileOpen,
+  onClose,
+  onToggleCollapse,
+}: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [pengurusanAhliOpen, setPengurusanAhliOpen] = useState(
     pathname?.startsWith('/admin/pengurusan-ahli')
   );
 
-  const isActive = (path: string) => {
-    return pathname === path;
-  };
+  // Auto-close submenu when sidebar collapses on desktop
+  useEffect(() => {
+    if (collapsed) {
+      setPengurusanAhliOpen(false);
+    } else if (pathname?.startsWith('/admin/pengurusan-ahli')) {
+      setPengurusanAhliOpen(true);
+    }
+  }, [collapsed, pathname]);
 
-  const isParentActive = (parentPath: string) => {
-    return pathname?.startsWith(parentPath);
-  };
+  const isActive = (path: string) => pathname === path;
+  const isParentActive = (parentPath: string) => pathname?.startsWith(parentPath);
 
   const handleLogout = () => {
     const confirm = window.confirm('Adakah anda pasti untuk log keluar?');
@@ -47,163 +59,206 @@ export default function AdminSidebar({ isOpen = true, onClose }: AdminSidebarPro
     }
   };
 
+  const handleNavClick = () => {
+    // Only close on mobile
+    onClose();
+  };
+
+  // Shared nav item classes
+  const navItemBase = 'flex items-center rounded-lg transition-all text-sm';
+  const navItemActive = 'bg-teal-600/20 text-teal-400';
+  const navItemInactive = 'text-gray-300 hover:bg-gray-800/50 hover:text-white';
+
   return (
     <>
-      {/* Overlay for mobile */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {/* Mobile overlay */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ${
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 w-72 bg-[#1a1f2e] text-white h-screen flex flex-col z-50 shadow-xl transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={[
+          // Base
+          'fixed top-0 left-0 h-screen flex flex-col z-50 bg-[#1a1f2e] text-white shadow-xl',
+          // Mobile: overlay drawer, always w-72, slides in/out
+          'lg:relative lg:z-auto',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          // Desktop: always visible, width changes based on collapsed
+          'lg:translate-x-0',
+          collapsed ? 'lg:w-[72px]' : 'lg:w-72',
+          // Width on mobile is always full-size
+          'w-72',
+          // Transitions
+          'transition-all duration-300 ease-in-out',
+        ].join(' ')}
       >
-        {/* Header with Close Button */}
-        <div className="p-4 bg-[#141824] border-b border-gray-800 flex items-center justify-between">
-          <Link href="/admin" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-white" />
+        {/* Header */}
+        <div className="p-3 bg-[#141824] border-b border-gray-800 flex items-center justify-between min-h-[60px]">
+          <Link
+            href="/admin/dashboard"
+            className={`flex items-center gap-3 overflow-hidden ${collapsed ? 'lg:justify-center lg:w-full' : ''}`}
+            onClick={handleNavClick}
+          >
+            <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h2 className="font-bold text-base">Al-Falah</h2>
-              <p className="text-xs text-gray-400">Panel Admin</p>
+            <div className={`transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>
+              <h2 className="font-bold text-sm whitespace-nowrap">Al-Falah</h2>
+              <p className="text-xs text-gray-400 whitespace-nowrap">Panel Admin</p>
             </div>
           </Link>
-          
-          {/* Close Button */}
+
+          {/* Mobile close */}
           <button
             onClick={onClose}
-            className="lg:hidden p-2 hover:bg-gray-700 rounded-lg transition-colors"
-            aria-label="Close sidebar"
+            className="lg:hidden p-2 hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Tutup menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* User Info - Compact */}
-        <div className="p-4 bg-[#141824] border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center">
-              <span className="text-sm font-bold">A</span>
+        {/* User info */}
+        <div className={`bg-[#141824] border-b border-gray-800 ${collapsed ? 'lg:px-2 lg:py-3' : 'p-3'}`}>
+          <div className={`flex items-center gap-3 ${collapsed ? 'lg:justify-center' : ''}`}>
+            <div className="w-9 h-9 bg-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold">A</span>
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>
               <p className="text-sm font-semibold truncate">Administrator</p>
               <p className="text-xs text-gray-400 truncate">admin@masjid.com</p>
             </div>
           </div>
         </div>
 
-        {/* Navigation - Scrollable */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-1">
           {/* Dashboard */}
           <Link
-            href="/admin"
-            onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-              isActive('/admin')
-                ? 'bg-gray-800 text-white'
-                : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-            }`}
+            href="/admin/dashboard"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/dashboard') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Dashboard' : undefined}
           >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Dashboard</span>
+            <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Dashboard</span>
           </Link>
 
           {/* Pengurusan Ahli */}
           <div className="space-y-1">
             <button
-              onClick={() => setPengurusanAhliOpen(!pengurusanAhliOpen)}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-                isParentActive('/admin/pengurusan-ahli')
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-              }`}
+              onClick={() => {
+                if (collapsed) {
+                  // On collapsed click, expand sidebar first then open submenu
+                  onToggleCollapse();
+                  setPengurusanAhliOpen(true);
+                } else {
+                  setPengurusanAhliOpen(!pengurusanAhliOpen);
+                }
+              }}
+              className={`w-full ${navItemBase} justify-between gap-3 px-3 py-2.5 ${isParentActive('/admin/pengurusan-ahli') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+              title={collapsed ? 'Pengurusan Ahli' : undefined}
             >
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5" />
-                <span>Pengurusan Ahli</span>
+              <div className={`flex items-center gap-3 ${collapsed ? 'lg:justify-center' : ''}`}>
+                <Users className="w-5 h-5 flex-shrink-0" />
+                <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Pengurusan Ahli</span>
               </div>
-              {pengurusanAhliOpen ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
+              <span className={collapsed ? 'lg:hidden' : ''}>
+                {pengurusanAhliOpen ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </span>
             </button>
 
             {/* Submenu */}
-            {pengurusanAhliOpen && (
+            <div
+              className={`overflow-hidden transition-all duration-200 ${
+                pengurusanAhliOpen && !collapsed
+                  ? 'max-h-40 opacity-100'
+                  : 'max-h-0 opacity-0'
+              }`}
+            >
               <div className="ml-3 pl-3 border-l border-gray-700 space-y-1">
                 <Link
                   href="/admin/pengurusan-ahli/anak-kariah"
-                  onClick={onClose}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
-                    isActive('/admin/pengurusan-ahli/anak-kariah')
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                  onClick={handleNavClick}
+                  className={`${navItemBase} gap-3 px-3 py-2 ${
+                    isActive('/admin/pengurusan-ahli/anak-kariah') ? navItemActive : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
                   }`}
                 >
-                  <UserCheck className="w-4 h-4" />
+                  <UserCheck className="w-4 h-4 flex-shrink-0" />
                   <span>Anak Kariah</span>
                 </Link>
 
                 <Link
                   href="/admin/pengurusan-ahli/kawasan"
-                  onClick={onClose}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
-                    pathname?.startsWith('/admin/pengurusan-ahli/kawasan')
-                      ? 'bg-teal-600 text-white'
-                      : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                  onClick={handleNavClick}
+                  className={`${navItemBase} gap-3 px-3 py-2 ${
+                    pathname?.startsWith('/admin/pengurusan-ahli/kawasan') ? navItemActive : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
                   }`}
                 >
-                  <MapPin className="w-4 h-4" />
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
                   <span>Kawasan</span>
                 </Link>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Derma */}
           <Link
-            href="/admin/derma"
-            onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-              isActive('/admin/derma')
-                ? 'bg-gray-800 text-white'
-                : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-            }`}
+            href="/admin/donations"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/donations') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Derma' : undefined}
           >
-            <DollarSign className="w-5 h-5" />
-            <span>Derma</span>
+            <DollarSign className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Derma</span>
           </Link>
 
           {/* Pengumuman */}
           <Link
-            href="/admin/pengumuman"
-            onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-              isActive('/admin/pengumuman')
-                ? 'bg-gray-800 text-white'
-                : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-            }`}
+            href="/admin/announcements"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/announcements') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Pengumuman' : undefined}
           >
-            <MessageSquare className="w-5 h-5" />
-            <span>Pengumuman</span>
+            <MessageSquare className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Pengumuman</span>
           </Link>
         </nav>
 
-        {/* Logout Button - Fixed at Bottom */}
-        <div className="p-3 border-t border-gray-800">
+        {/* Bottom section */}
+        <div className="border-t border-gray-800 p-2 space-y-1">
+          {/* Desktop collapse toggle */}
+          <button
+            onClick={onToggleCollapse}
+            className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800/50 hover:text-white transition-all text-sm justify-center"
+            title={collapsed ? 'Kembangkan' : 'Kecilkan'}
+          >
+            {collapsed ? (
+              <ChevronsRight className="w-5 h-5 flex-shrink-0" />
+            ) : (
+              <>
+                <ChevronsLeft className="w-5 h-5 flex-shrink-0" />
+                <span className="whitespace-nowrap">Kecilkan Menu</span>
+              </>
+            )}
+          </button>
+
+          {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium"
+            className={`w-full flex items-center gap-2 px-3 py-2.5 bg-red-600/90 hover:bg-red-600 text-white rounded-lg transition-all text-sm font-medium ${collapsed ? 'lg:justify-center lg:px-0' : 'justify-center'}`}
+            title={collapsed ? 'Log Keluar' : undefined}
           >
-            <LogOut className="w-4 h-4" />
-            <span>Log Keluar</span>
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Log Keluar</span>
           </button>
         </div>
       </aside>

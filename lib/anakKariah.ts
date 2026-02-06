@@ -19,7 +19,7 @@ import { AnakKariah, AnakKariahFormData, StatusType } from '@/types/kariah';
 const ANAK_KARIAH_COLLECTION = 'anakKariah';
 
 /**
- * Get all anak kariah members
+ * Get all anak kariah members (excluding soft-deleted)
  */
 export async function getAllAnakKariah(): Promise<AnakKariah[]> {
   try {
@@ -27,10 +27,9 @@ export async function getAllAnakKariah(): Promise<AnakKariah[]> {
     const q = query(membersRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as AnakKariah[];
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as AnakKariah)
+      .filter((m) => !m.isDeleted);
   } catch (error) {
     console.error('Error fetching anak kariah:', error);
     throw new Error('Gagal mendapatkan data ahli');
@@ -38,7 +37,7 @@ export async function getAllAnakKariah(): Promise<AnakKariah[]> {
 }
 
 /**
- * Get anak kariah by status
+ * Get anak kariah by status (excluding soft-deleted)
  */
 export async function getAnakKariahByStatus(
   status: StatusType
@@ -52,10 +51,9 @@ export async function getAnakKariahByStatus(
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as AnakKariah[];
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as AnakKariah)
+      .filter((m) => !m.isDeleted);
   } catch (error) {
     console.error('Error fetching anak kariah by status:', error);
     throw new Error('Gagal mendapatkan data ahli');
@@ -63,7 +61,7 @@ export async function getAnakKariahByStatus(
 }
 
 /**
- * Get anak kariah by kawasan
+ * Get anak kariah by kawasan (excluding soft-deleted)
  */
 export async function getAnakKariahByKawasan(
   kawasanId: string
@@ -77,10 +75,9 @@ export async function getAnakKariahByKawasan(
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as AnakKariah[];
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as AnakKariah)
+      .filter((m) => !m.isDeleted);
   } catch (error) {
     console.error('Error fetching anak kariah by kawasan:', error);
     throw new Error('Gagal mendapatkan data ahli');
@@ -126,6 +123,9 @@ export async function createAnakKariah(
     const docRef = await addDoc(membersRef, {
       ...data,
       tarikhLahir: Timestamp.fromDate(data.tarikhLahir),
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -197,7 +197,28 @@ export async function updateMemberStatus(
 }
 
 /**
- * Delete anak kariah
+ * Soft delete anak kariah
+ */
+export async function softDeleteAnakKariah(
+  id: string,
+  deletedBy: string = 'admin'
+): Promise<void> {
+  try {
+    const memberRef = doc(db, ANAK_KARIAH_COLLECTION, id);
+    await updateDoc(memberRef, {
+      isDeleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error soft deleting anak kariah:', error);
+    throw new Error('Gagal memadam ahli');
+  }
+}
+
+/**
+ * Hard delete anak kariah (kept for admin cleanup)
  */
 export async function deleteAnakKariah(id: string): Promise<void> {
   try {
@@ -210,7 +231,7 @@ export async function deleteAnakKariah(id: string): Promise<void> {
 }
 
 /**
- * Check if IC number already exists
+ * Check if IC number already exists (excluding soft-deleted)
  */
 async function checkICExists(ic: string, excludeId?: string): Promise<boolean> {
   try {
@@ -218,11 +239,13 @@ async function checkICExists(ic: string, excludeId?: string): Promise<boolean> {
     const q = query(membersRef, where('ic', '==', ic));
     const snapshot = await getDocs(q);
 
-    if (excludeId) {
-      return snapshot.docs.some((doc) => doc.id !== excludeId);
-    }
+    const activeDocs = snapshot.docs.filter((d) => {
+      const data = d.data();
+      if (excludeId && d.id === excludeId) return false;
+      return !data.isDeleted;
+    });
 
-    return !snapshot.empty;
+    return activeDocs.length > 0;
   } catch (error) {
     console.error('Error checking IC:', error);
     return false;
@@ -230,7 +253,7 @@ async function checkICExists(ic: string, excludeId?: string): Promise<boolean> {
 }
 
 /**
- * Get recent registrations
+ * Get recent registrations (excluding soft-deleted)
  */
 export async function getRecentRegistrations(
   limitCount: number = 10
@@ -244,10 +267,9 @@ export async function getRecentRegistrations(
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as AnakKariah[];
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as AnakKariah)
+      .filter((m) => !m.isDeleted);
   } catch (error) {
     console.error('Error fetching recent registrations:', error);
     throw new Error('Gagal mendapatkan pendaftaran terkini');
@@ -255,21 +277,23 @@ export async function getRecentRegistrations(
 }
 
 /**
- * Get statistics for dashboard
+ * Get statistics for dashboard (excluding soft-deleted)
  */
 export async function getAnakKariahStats() {
   try {
     const membersRef = collection(db, ANAK_KARIAH_COLLECTION);
     const snapshot = await getDocs(membersRef);
 
-    const total = snapshot.size;
-    const approved = snapshot.docs.filter(
+    const activeDocs = snapshot.docs.filter((d) => !d.data().isDeleted);
+
+    const total = activeDocs.length;
+    const approved = activeDocs.filter(
       (doc) => doc.data().status === 'approved'
     ).length;
-    const pending = snapshot.docs.filter(
+    const pending = activeDocs.filter(
       (doc) => doc.data().status === 'pending'
     ).length;
-    const rejected = snapshot.docs.filter(
+    const rejected = activeDocs.filter(
       (doc) => doc.data().status === 'rejected'
     ).length;
 
@@ -281,13 +305,14 @@ export async function getAnakKariahStats() {
       where('createdAt', '>=', Timestamp.fromDate(thirtyDaysAgo))
     );
     const recentSnapshot = await getDocs(recentQuery);
+    const recentCount = recentSnapshot.docs.filter((d) => !d.data().isDeleted).length;
 
     return {
       total,
       approved,
       pending,
       rejected,
-      recentRegistrations: recentSnapshot.size
+      recentRegistrations: recentCount
     };
   } catch (error) {
     console.error('Error getting stats:', error);
@@ -302,7 +327,7 @@ export async function getAnakKariahStats() {
 }
 
 /**
- * Search anak kariah by name or IC
+ * Search anak kariah by name or IC (excluding soft-deleted)
  */
 export async function searchAnakKariah(
   searchTerm: string
@@ -312,7 +337,7 @@ export async function searchAnakKariah(
     const snapshot = await getDocs(membersRef);
 
     const searchLower = searchTerm.toLowerCase();
-    
+
     const results = snapshot.docs
       .map((doc) => ({
         id: doc.id,
@@ -321,9 +346,10 @@ export async function searchAnakKariah(
 
     return results.filter(
       (member) =>
-        member.namaPenuh.toLowerCase().includes(searchLower) ||
+        !member.isDeleted &&
+        (member.namaPenuh.toLowerCase().includes(searchLower) ||
         member.ic.includes(searchTerm) ||
-        member.telefon.includes(searchTerm)
+        member.telefon.includes(searchTerm))
     );
   } catch (error) {
     console.error('Error searching anak kariah:', error);

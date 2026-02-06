@@ -53,6 +53,9 @@ export interface AnakKariah {
   jantina: JantinaType;
   tarikhLahir: Timestamp;
   status: StatusType;
+  isDeleted?: boolean;
+  deletedAt?: Timestamp | null;
+  deletedBy?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
