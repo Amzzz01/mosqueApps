@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { collection, query, orderBy, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Announcement } from '@/types';
-import { Plus, Eye, Edit, Trash2, Search, Filter } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Search, Filter, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ms } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -96,6 +96,24 @@ export default function AnnouncementsPage() {
     setFilteredAnnouncements(filtered);
   };
 
+  const handleTogglePublish = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'announcements', id), {
+        published: !currentStatus,
+        updatedAt: Timestamp.now(),
+      });
+      toast.success(
+        !currentStatus 
+          ? 'Pengumuman berjaya diterbitkan' 
+          : 'Pengumuman berjaya dijadikan draf'
+      );
+      fetchAnnouncements();
+    } catch (error) {
+      console.error('Error toggling publish status:', error);
+      toast.error('Gagal mengemas kini status pengumuman');
+    }
+  };
+
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Adakah anda pasti mahu memadam pengumuman "${title}"?`)) {
       return;
@@ -151,33 +169,36 @@ export default function AnnouncementsPage() {
         </div>
         <Link
           href="/admin/announcements/new"
-          className="flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors"
         >
           <Plus className="h-5 w-5" />
-          <span>Buat Pengumuman</span>
+          Buat Pengumuman
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 space-y-4">
-        {/* Search */}
+      {/* Search */}
+      <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Cari pengumuman..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
+      </div>
 
-        {/* Filter buttons */}
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Filter className="h-5 w-5 text-gray-600" />
+          <span className="font-medium text-gray-900">Penapis</span>
+        </div>
+
         <div className="flex flex-wrap gap-2">
-          <div className="flex items-center space-x-2">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Kategori:</span>
-          </div>
+          <span className="text-sm font-medium text-gray-700">Kategori:</span>
           <button
             onClick={() => setCategoryFilter('all')}
             className={`px-3 py-1 text-sm rounded-lg transition-colors ${
@@ -268,38 +289,37 @@ export default function AnnouncementsPage() {
       {/* Announcements Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAnnouncements.length === 0 ? (
-          <div className="col-span-full bg-white rounded-lg shadow p-12 text-center">
+          <div className="col-span-full text-center py-12">
             <p className="text-gray-500">Tiada pengumuman dijumpai</p>
           </div>
         ) : (
           filteredAnnouncements.map((announcement) => {
             const priorityBadge = getPriorityBadge(announcement.priority);
+            
             return (
-              <div key={announcement.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+              <div key={announcement.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="p-6">
-                  {/* Header with badges */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 mb-2">
-                        {announcement.title}
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${priorityBadge.color}`}>
-                          {priorityBadge.label}
-                        </span>
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                          {getCategoryLabel(announcement.category)}
-                        </span>
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            announcement.published
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {announcement.published ? 'Diterbitkan' : 'Draf'}
-                        </span>
-                      </div>
+                  {/* Title and badges */}
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {announcement.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                        {getCategoryLabel(announcement.category)}
+                      </span>
+                      <span className={`px-2 py-1 text-xs rounded-full ${priorityBadge.color}`}>
+                        {priorityBadge.label}
+                      </span>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          announcement.published
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {announcement.published ? 'Diterbitkan' : 'Draf'}
+                      </span>
                     </div>
                   </div>
                   
@@ -321,31 +341,57 @@ export default function AnnouncementsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-                    {announcement.published && (
-                      <Link
-                        href="/announcements"
-                        target="_blank"
-                        className="text-blue-600 hover:text-blue-900 p-2"
-                        title="Lihat"
-                      >
-                        <Eye className="h-5 w-5" />
-                      </Link>
-                    )}
-                    <Link
-                      href={`/admin/announcements/${announcement.id}/edit`}
-                      className="text-emerald-600 hover:text-emerald-900 p-2"
-                      title="Edit"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </Link>
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    {/* Publish/Unpublish Toggle */}
                     <button
-                      onClick={() => handleDelete(announcement.id!, announcement.title)}
-                      className="text-red-600 hover:text-red-900 p-2"
-                      title="Padam"
+                      onClick={() => handleTogglePublish(announcement.id!, announcement.published)}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                        announcement.published
+                          ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      }`}
+                      title={announcement.published ? 'Jadikan Draf' : 'Terbitkan'}
                     >
-                      <Trash2 className="h-5 w-5" />
+                      {announcement.published ? (
+                        <>
+                          <XCircle className="h-4 w-4" />
+                          <span>Nyahterbit</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Terbitkan</span>
+                        </>
+                      )}
                     </button>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center space-x-2">
+                      {announcement.published && (
+                        <Link
+                          href="/announcements"
+                          target="_blank"
+                          className="text-blue-600 hover:text-blue-900 p-2"
+                          title="Lihat di laman awam"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </Link>
+                      )}
+                      <Link
+                        href={`/admin/announcements/${announcement.id}/edit`}
+                        className="text-emerald-600 hover:text-emerald-900 p-2"
+                        title="Edit"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(announcement.id!, announcement.title)}
+                        className="text-red-600 hover:text-red-900 p-2"
+                        title="Padam"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

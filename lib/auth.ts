@@ -1,11 +1,13 @@
 // lib/auth.ts
-import { 
+import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase/config';
 
 export interface AdminUser {
@@ -155,6 +157,74 @@ export function subscribeToAuthChanges(
       callback(null);
     }
   });
+}
+
+/**
+ * Register a new admin user
+ */
+export async function registerAdmin(
+  email: string,
+  password: string,
+  displayName: string,
+  registrationKey: string
+): Promise<void> {
+  // Verify registration key server-side
+  const res = await fetch('/api/admin/verify-key', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: registrationKey }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Pengesahan kunci gagal');
+  }
+
+  try {
+    // Create Firebase Auth user
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Create admin record in Firestore
+    await setDoc(doc(db, 'adminUsers', user.uid), {
+      email: user.email,
+      displayName,
+      role: 'admin',
+      active: true,
+      createdAt: serverTimestamp(),
+    });
+
+    // Sign out after registration - user should log in manually
+    await signOut(auth);
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error('Email ini sudah didaftarkan');
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error('Format email tidak sah');
+    } else if (error.code === 'auth/weak-password') {
+      throw new Error('Kata laluan terlalu lemah. Minimum 6 aksara.');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Send password reset email
+ */
+export async function resetPassword(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      throw new Error('Email tidak dijumpai dalam sistem');
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error('Format email tidak sah');
+    } else if (error.code === 'auth/too-many-requests') {
+      throw new Error('Terlalu banyak cubaan. Sila cuba sebentar lagi.');
+    }
+    throw new Error('Gagal menghantar email. Sila cuba lagi.');
+  }
 }
 
 /**

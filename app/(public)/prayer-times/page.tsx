@@ -1,30 +1,101 @@
-import { fetchPrayerTimes, getNextPrayer, formatMalaysianDate } from '@/lib/api/jakim';
-import { Clock, MapPin, Calendar } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { fetchPrayerTimes, getNextPrayer, formatMalaysianDate, PrayerTimes as PrayerTimesType } from '@/lib/api/jakim';
+import { Clock, Calendar, Loader2 } from 'lucide-react';
 import PrayerTimeCard from '@/components/public/PrayerTimeCard';
 import NextPrayerCountdown from '@/components/public/NextPrayerCountdown';
+import ZoneSelector from '@/components/public/ZoneSelector';
+import { getZoneByCode, DEFAULT_ZONE } from '@/lib/zones';
 
-export const revalidate = 3600; // Revalidate every hour
+const STORAGE_KEY = 'selected_prayer_zone';
 
-export default async function PrayerTimesPage() {
-  const prayerTimes = await fetchPrayerTimes('SGR01');
+export default function PrayerTimesPage() {
+  const [selectedZone, setSelectedZone] = useState<string>(DEFAULT_ZONE);
+  const [prayerTimes, setPrayerTimes] = useState<PrayerTimesType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  if (!prayerTimes) {
+  // Load saved zone from localStorage on mount
+  useEffect(() => {
+    const savedZone = localStorage.getItem(STORAGE_KEY);
+    if (savedZone) {
+      setSelectedZone(savedZone);
+    }
+  }, []);
+
+  // Fetch prayer times when zone changes
+  useEffect(() => {
+    async function loadPrayerTimes() {
+      setLoading(true);
+      setError(false);
+      
+      try {
+        const data = await fetchPrayerTimes(selectedZone);
+        if (data) {
+          setPrayerTimes(data);
+        } else {
+          setError(true);
+        }
+      } catch (err) {
+        console.error('Error loading prayer times:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPrayerTimes();
+  }, [selectedZone]);
+
+  // Handle zone change
+  const handleZoneChange = (newZone: string) => {
+    setSelectedZone(newZone);
+    localStorage.setItem(STORAGE_KEY, newZone);
+  };
+
+  // Loading state
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
-          <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <Loader2 className="h-16 w-16 text-emerald-600 mx-auto mb-4 animate-spin" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Tidak dapat memuat waktu solat
+            Memuatkan waktu solat...
           </h2>
           <p className="text-gray-600">
-            Sila cuba lagi sebentar.
+            Sila tunggu sebentar
           </p>
         </div>
       </div>
     );
   }
 
+  // Error state
+  if (error || !prayerTimes) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Tidak dapat memuat waktu solat
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Sila cuba lagi sebentar.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          >
+            Cuba Lagi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const nextPrayer = getNextPrayer(prayerTimes);
+  const zoneInfo = getZoneByCode(selectedZone);
 
   const prayers = [
     { name: 'Imsak', time: prayerTimes.imsak, color: 'from-indigo-500 to-purple-500' },
@@ -43,9 +114,19 @@ export default async function PrayerTimesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <Clock className="h-16 w-16 mx-auto mb-4" />
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
               Waktu Solat
             </h1>
+            
+            {/* Zone Selector */}
+            <div className="flex justify-center mb-6">
+              <ZoneSelector 
+                currentZone={selectedZone}
+                onZoneChange={handleZoneChange}
+              />
+            </div>
+
+            {/* Date and Location Info */}
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-emerald-50">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
@@ -56,11 +137,6 @@ export default async function PrayerTimesPage() {
               <div className="hidden md:block">•</div>
               <div className="flex items-center gap-2">
                 <span className="text-lg">{prayerTimes.hijri}</span>
-              </div>
-              <div className="hidden md:block">•</div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                <span className="text-lg">Zon SGR01 - Shah Alam</span>
               </div>
             </div>
           </div>
@@ -100,7 +176,7 @@ export default async function PrayerTimesPage() {
           <div className="space-y-3 text-gray-600">
             <p className="flex items-start">
               <span className="text-emerald-600 mr-2">•</span>
-              Waktu solat adalah berdasarkan zon SGR01 (Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, Rawang, Shah Alam)
+              Waktu solat adalah berdasarkan zon {zoneInfo?.code} ({zoneInfo?.name})
             </p>
             <p className="flex items-start">
               <span className="text-emerald-600 mr-2">•</span>
@@ -114,13 +190,17 @@ export default async function PrayerTimesPage() {
               <span className="text-emerald-600 mr-2">•</span>
               Syuruk adalah waktu terbit matahari (bukan waktu solat)
             </p>
+            <p className="flex items-start">
+              <span className="text-emerald-600 mr-2">•</span>
+              Zon yang dipilih akan disimpan untuk lawatan akan datang
+            </p>
           </div>
         </div>
 
         {/* Source Attribution */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Sumber: Jabatan Kemajuan Islam Malaysia (JAKIM)</p>
-          <p className="mt-1">Kemaskini setiap jam</p>
+          <p className="mt-1">Dikemaskini secara langsung</p>
         </div>
       </div>
     </div>

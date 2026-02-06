@@ -3,6 +3,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Building2, Mail, Lock, AlertCircle } from 'lucide-react';
 import { signInAdmin } from '@/lib/auth';
 
@@ -94,16 +95,21 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                disabled={loading}
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">Ingat saya</label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  disabled={loading}
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">Ingat saya</label>
+              </div>
+              <Link href="/admin/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                Lupa Kata Laluan?
+              </Link>
             </div>
 
             <button
@@ -130,7 +136,10 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          Untuk akses admin sahaja. Hubungi pentadbir jika anda tidak mempunyai akaun.
+          Belum mempunyai akaun?{' '}
+          <Link href="/admin/register" className="text-emerald-600 hover:text-emerald-700 font-medium">
+            Daftar di sini
+          </Link>
         </p>
       </div>
     </div>

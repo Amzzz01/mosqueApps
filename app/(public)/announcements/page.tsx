@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase/config';
 import { Announcement } from '@/types';
 import AnnouncementCard from '@/components/public/AnnouncementCard';
 
-export const revalidate = 300; // Revalidate every 5 minutes
+export const revalidate = 30; // Revalidate every 5 minutes
 
 async function getPublishedAnnouncements(): Promise<Announcement[]> {
   try {
