@@ -24,7 +24,17 @@ export default function AnnouncementCard({ announcement }: AnnouncementCardProps
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    let date: Date;
+    if (typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else if (timestamp.seconds != null) {
+      date = new Date(timestamp.seconds * 1000);
+    } else {
+      date = new Date(timestamp);
+    }
+    if (isNaN(date.getTime())) return '';
     return format(date, 'dd MMMM yyyy, HH:mm', { locale: ms });
   };
 

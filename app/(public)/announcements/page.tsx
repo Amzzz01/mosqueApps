@@ -17,10 +17,20 @@ async function getPublishedAnnouncements(): Promise<Announcement[]> {
     );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Announcement[];
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Convert Firestore Timestamps to ISO strings for RSC serialization
+        createdAt: typeof data.createdAt?.toDate === 'function'
+          ? data.createdAt.toDate().toISOString()
+          : data.createdAt,
+        updatedAt: typeof data.updatedAt?.toDate === 'function'
+          ? data.updatedAt.toDate().toISOString()
+          : data.updatedAt,
+      };
+    }) as Announcement[];
   } catch (error) {
     console.error('Error fetching announcements:', error);
     return [];

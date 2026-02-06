@@ -1,110 +1,166 @@
 import Link from 'next/link';
-import { Clock, MessageSquare, Phone, Users, Heart, BookOpen } from 'lucide-react';
+import {
+  Clock,
+  MessageSquare,
+  Phone,
+  Users,
+  Heart,
+  BookOpen,
+  Calendar,
+  ArrowRight,
+  Star,
+  HandHeart,
+  GraduationCap,
+  UserPlus,
+} from 'lucide-react';
 
 export default function HomePage() {
-  const features = [
+  const services = [
     {
       icon: Clock,
       title: 'Waktu Solat',
-      description: 'Lihat waktu solat harian dari JAKIM',
+      description: 'Lihat waktu solat harian dari JAKIM untuk kawasan anda.',
       href: '/prayer-times',
-      color: 'bg-blue-500',
+      color: 'from-blue-500 to-blue-600',
+      bgHover: 'group-hover:bg-blue-50',
     },
     {
       icon: MessageSquare,
       title: 'Pengumuman',
-      description: 'Maklumat dan berita terkini masjid',
+      description: 'Maklumat dan berita terkini dari pihak masjid.',
       href: '/announcements',
-      color: 'bg-purple-500',
+      color: 'from-purple-500 to-purple-600',
+      bgHover: 'group-hover:bg-purple-50',
     },
     {
       icon: Phone,
       title: 'Hubungi Kami',
-      description: 'Alamat dan cara menghubungi masjid',
+      description: 'Alamat, lokasi, dan cara menghubungi masjid.',
       href: '/contact',
-      color: 'bg-emerald-500',
+      color: 'from-emerald-500 to-emerald-600',
+      bgHover: 'group-hover:bg-emerald-50',
     },
   ];
 
-  const activities = [
+  const kuliahSchedule = [
     {
+      day: 'Isnin & Khamis',
+      time: '8:30 PM',
+      title: 'Kelas Mengaji Al-Quran',
+      speaker: 'Ustaz Ahmad',
       icon: BookOpen,
-      title: 'Kelas Mengaji',
-      description: 'Setiap Isnin & Khamis, 8:30 PM',
     },
     {
+      day: 'Selasa',
+      time: '9:00 PM',
+      title: 'Kuliah Hadis',
+      speaker: 'Ustaz Zulkifli',
+      icon: GraduationCap,
+    },
+    {
+      day: 'Jumaat',
+      time: '1:00 PM',
+      title: 'Khutbah Jumaat',
+      speaker: 'Khatib Jemputan',
+      icon: Star,
+    },
+    {
+      day: 'Sabtu',
+      time: '10:00 AM',
+      title: 'Kelas Fardhu Ain',
+      speaker: 'Ustazah Fatimah',
       icon: Users,
-      title: 'Kuliah Jumaat',
-      description: 'Setiap Jumaat, 1:00 PM',
-    },
-    {
-      icon: Heart,
-      title: 'Program Amal',
-      description: 'Setiap bulan, lihat pengumuman',
     },
   ];
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in">
-              Assalamualaikum
-            </h1>
-            <p className="text-xl md:text-2xl text-emerald-50 mb-4">
-              Selamat Datang ke Masjid Al-Falah
+      {/* ========== HERO ========== */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 text-white">
+        {/* Decorative pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-64 h-64 border border-white/30 rounded-full" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 border border-white/20 rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/10 rounded-full" />
+          <div className="hidden xl:block absolute -top-20 -right-20 w-[500px] h-[500px] border border-white/15 rounded-full" />
+          <div className="hidden xl:block absolute -bottom-32 -left-32 w-[400px] h-[400px] border border-white/10 rounded-full" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 lg:py-36 xl:py-40">
+          <div className="text-center max-w-4xl mx-auto">
+            <p className="text-emerald-200 text-sm lg:text-base font-medium tracking-widest uppercase mb-4 lg:mb-6">
+              Bismillahirrahmanirrahim
             </p>
-            <p className="text-lg text-emerald-100 max-w-2xl mx-auto mb-8">
-              Masjid yang berdedikasi untuk menyediakan perkhidmatan terbaik kepada 
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 lg:mb-8 leading-tight">
+              Selamat Datang ke
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-200">
+                Masjid Al-Falah
+              </span>
+            </h1>
+            <p className="text-lg sm:text-xl lg:text-2xl text-emerald-100 mb-10 lg:mb-12 leading-relaxed max-w-2xl lg:max-w-3xl mx-auto">
+              Masjid yang berdedikasi untuk menyediakan perkhidmatan terbaik kepada
               masyarakat Islam dalam ibadah, pendidikan, dan aktiviti kemasyarakatan.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/prayer-times"
-                className="bg-white text-emerald-600 px-8 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl"
+                className="inline-flex items-center justify-center gap-2.5 bg-white text-emerald-700 px-7 py-3.5 lg:px-9 lg:py-4 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl text-sm lg:text-base"
               >
-                Lihat Waktu Solat
+                <Clock className="w-4 h-4 lg:w-5 lg:h-5" />
+                Waktu Solat Hari Ini
               </Link>
               <Link
-                href="/contact"
-                className="bg-emerald-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-emerald-800 transition-all shadow-lg hover:shadow-xl border-2 border-white"
+                href="/announcements"
+                className="inline-flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-sm text-white px-7 py-3.5 lg:px-9 lg:py-4 rounded-xl font-semibold hover:bg-white/20 transition-all border border-white/20 text-sm lg:text-base"
               >
-                Hubungi Kami
+                Pengumuman
+                <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5" />
               </Link>
             </div>
           </div>
         </div>
+
+        {/* Wave divider */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 80" fill="none" className="w-full" preserveAspectRatio="none">
+            <path d="M0 80V30C240 60 480 0 720 30C960 60 1200 0 1440 30V80H0Z" fill="white" />
+          </svg>
+        </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
+      {/* ========== SERVICES ========== */}
+      <section className="py-16 md:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Perkhidmatan Masjid
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature) => {
-              const Icon = feature.icon;
+          <div className="text-center mb-12 lg:mb-16">
+            <p className="text-emerald-600 font-semibold text-sm lg:text-base uppercase tracking-wider mb-3">
+              Perkhidmatan
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
+              Kemudahan Untuk Anda
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {services.map((service) => {
+              const Icon = service.icon;
               return (
                 <Link
-                  key={feature.href}
-                  href={feature.href}
-                  className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-emerald-200"
+                  key={service.href}
+                  href={service.href}
+                  className="group bg-white rounded-2xl p-7 lg:p-9 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-emerald-200 hover:-translate-y-1"
                 >
-                  <div className={`${feature.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                    <Icon className="h-8 w-8 text-white" />
+                  <div className={`bg-gradient-to-br ${service.color} w-14 h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center mb-5 lg:mb-6 group-hover:scale-110 transition-transform shadow-sm`}>
+                    <Icon className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors">
-                    {feature.title}
+                  <h3 className="text-lg lg:text-xl font-bold text-gray-900 mb-2 lg:mb-3 group-hover:text-emerald-600 transition-colors">
+                    {service.title}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {feature.description}
+                  <p className="text-gray-500 text-sm lg:text-base leading-relaxed mb-4 lg:mb-5">
+                    {service.description}
                   </p>
-                  <div className="mt-4 text-emerald-600 font-semibold flex items-center group-hover:translate-x-2 transition-transform">
-                    Lihat →
-                  </div>
+                  <span className="text-emerald-600 font-semibold text-sm lg:text-base flex items-center gap-1.5 group-hover:gap-3 transition-all">
+                    Lihat <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5" />
+                  </span>
                 </Link>
               );
             })}
@@ -112,32 +168,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Activities Section */}
-      <section className="py-16 bg-gray-50">
+      {/* ========== KULIAH ========== */}
+      <section id="kuliah" className="py-16 md:py-20 lg:py-24 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Aktiviti Masjid
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {activities.map((activity, index) => {
-              const Icon = activity.icon;
+          <div className="text-center mb-12 lg:mb-16">
+            <p className="text-emerald-600 font-semibold text-sm lg:text-base uppercase tracking-wider mb-3">
+              Jadual Kuliah
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
+              Program Pendidikan Mingguan
+            </h2>
+            <p className="text-gray-500 mt-3 lg:mt-4 max-w-lg lg:max-w-xl mx-auto lg:text-lg">
+              Pelbagai kuliah dan kelas untuk meningkatkan ilmu agama anda.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 max-w-6xl mx-auto">
+            {kuliahSchedule.map((item, idx) => {
+              const Icon = item.icon;
               return (
                 <div
-                  key={index}
-                  className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow"
+                  key={idx}
+                  className="flex items-start gap-4 xl:flex-col xl:items-center xl:text-center bg-gray-50 rounded-xl p-5 lg:p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-emerald-100 rounded-full p-3 flex-shrink-0">
-                      <Icon className="h-6 w-6 text-emerald-600" />
+                  <div className="w-11 h-11 lg:w-14 lg:h-14 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 lg:text-lg">{item.title}</h3>
+                    <div className="flex items-center gap-2 mt-1.5 lg:mt-2 text-sm text-gray-500 xl:justify-center">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{item.day}</span>
+                      <span className="text-gray-300">|</span>
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{item.time}</span>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {activity.title}
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        {activity.description}
-                      </p>
-                    </div>
+                    <p className="text-sm lg:text-base text-emerald-600 mt-1 lg:mt-2 font-medium">{item.speaker}</p>
                   </div>
                 </div>
               );
@@ -146,14 +211,77 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Quote Section */}
-      <section className="py-16 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+      {/* ========== DONATION ========== */}
+      <section id="derma" className="py-16 md:py-20 lg:py-24 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 text-white scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="lg:flex lg:items-center lg:gap-16 xl:gap-20">
+            {/* Left - text */}
+            <div className="text-center lg:text-left lg:flex-1">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-6 border border-white/20">
+                <HandHeart className="w-8 h-8 lg:w-10 lg:h-10" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 lg:mb-5">
+                Sumbangan & Derma
+              </h2>
+              <p className="text-emerald-100 leading-relaxed mb-8 lg:mb-0 max-w-xl mx-auto lg:mx-0 lg:text-lg">
+                Sumbangan anda membantu kami menyelenggara masjid, menjalankan program pendidikan,
+                dan membantu golongan yang memerlukan dalam komuniti.
+              </p>
+            </div>
+
+            {/* Right - bank info + CTA */}
+            <div className="lg:flex-shrink-0 lg:w-[420px]">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 sm:p-8 lg:p-10 border border-white/20 max-w-md mx-auto lg:max-w-none mb-8 lg:mb-6">
+                <p className="text-sm lg:text-base text-emerald-200 mb-2">Akaun Bank Masjid</p>
+                <p className="text-lg lg:text-2xl font-bold">Maybank &bull; 1234-5678-9012</p>
+                <p className="text-sm lg:text-base text-emerald-200 mt-1">Masjid Al-Falah Telok Bagan</p>
+              </div>
+              <div className="text-center lg:text-left">
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2.5 bg-white text-emerald-700 px-7 py-3.5 lg:px-9 lg:py-4 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl text-sm lg:text-base"
+                >
+                  <Heart className="w-4 h-4 lg:w-5 lg:h-5" />
+                  Hubungi Untuk Maklumat Lanjut
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== REGISTER CTA ========== */}
+      <section id="daftar" className="py-16 md:py-20 lg:py-24 bg-white scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl lg:rounded-3xl p-8 sm:p-12 lg:p-16 flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-16">
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 lg:mb-4">
+                Daftar Sebagai Anak Kariah
+              </h2>
+              <p className="text-gray-400 leading-relaxed lg:text-lg lg:max-w-lg">
+                Jadilah sebahagian daripada komuniti Masjid Al-Falah. Daftarkan diri anda
+                untuk menerima maklumat terkini dan terlibat dalam aktiviti masjid.
+              </p>
+            </div>
+            <Link
+              href="/admin/pengurusan-ahli/anak-kariah/tambah"
+              className="inline-flex items-center gap-2.5 bg-emerald-500 text-white px-7 py-3.5 lg:px-9 lg:py-4 rounded-xl font-semibold hover:bg-emerald-600 transition-all shadow-lg hover:shadow-xl whitespace-nowrap text-sm lg:text-base flex-shrink-0"
+            >
+              <UserPlus className="w-4 h-4 lg:w-5 lg:h-5" />
+              Daftar Sekarang
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== QUOTE ========== */}
+      <section className="py-16 lg:py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <blockquote className="text-2xl md:text-3xl font-serif italic leading-relaxed">
-            "Sebaik-baik kalian adalah yang mempelajari Al-Quran dan mengajarkannya"
+          <blockquote className="text-2xl sm:text-3xl lg:text-4xl font-serif italic text-gray-800 leading-relaxed">
+            &ldquo;Sebaik-baik kalian adalah yang mempelajari Al-Quran dan mengajarkannya&rdquo;
           </blockquote>
-          <p className="mt-6 text-emerald-100 text-lg">
-            - Hadis Riwayat Bukhari
+          <p className="mt-5 lg:mt-8 text-gray-500 font-medium lg:text-lg">
+            Hadis Riwayat Bukhari
           </p>
         </div>
       </section>
