@@ -346,7 +346,7 @@ export default async function HomePage() {
               </p>
             </div>
             <Link
-              href="/admin/pengurusan-ahli/anak-kariah/tambah"
+              href="/register"
               className="inline-flex items-center gap-2.5 bg-emerald-500 text-white px-7 py-3.5 lg:px-9 lg:py-4 rounded-xl font-semibold hover:bg-emerald-600 transition-all shadow-lg hover:shadow-xl whitespace-nowrap text-sm lg:text-base flex-shrink-0"
             >
               <UserPlus className="w-4 h-4 lg:w-5 lg:h-5" />

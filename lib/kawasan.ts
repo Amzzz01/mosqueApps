@@ -13,9 +13,55 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Kawasan, KawasanFormData } from '@/types/kariah';
+import { Kawasan, KawasanFormData, GeoJSONPolygon } from '@/types/kariah';
 
 const KAWASAN_COLLECTION = 'kawasan';
+
+/**
+ * Convert GeoJSONPolygon (number[][][]) to Firestore-safe format.
+ * Firestore does NOT support nested arrays at any depth, so we flatten
+ * the outer ring to a single array of { lng, lat } objects.
+ */
+function boundariesToFirestore(
+  boundaries: GeoJSONPolygon | null
+): { type: string; coordinates: Array<{ lng: number; lat: number }> } | null {
+  if (!boundaries || !boundaries.coordinates || boundaries.coordinates.length === 0) return null;
+  const ring = boundaries.coordinates[0]; // outer ring only
+  return {
+    type: boundaries.type,
+    coordinates: ring.map((coord) => ({ lng: coord[0], lat: coord[1] }))
+  };
+}
+
+/**
+ * Convert Firestore-stored boundaries back to GeoJSONPolygon (number[][][]).
+ * Handles both flat format [{lng,lat}] and legacy nested [[lng,lat]] arrays.
+ */
+function boundariesFromFirestore(
+  raw: any
+): GeoJSONPolygon | null {
+  if (!raw || !raw.coordinates || raw.coordinates.length === 0) return null;
+
+  const first = raw.coordinates[0];
+
+  // Legacy format: coordinates is already number[][][] (nested arrays)
+  if (Array.isArray(first) && Array.isArray(first[0])) {
+    return { type: 'Polygon', coordinates: raw.coordinates };
+  }
+
+  // Legacy format: coordinates is number[][] (single ring of [lng, lat] pairs)
+  if (Array.isArray(first) && typeof first[0] === 'number') {
+    return { type: 'Polygon', coordinates: [raw.coordinates] };
+  }
+
+  // New format: coordinates is [{lng, lat}, ...] (flat array of objects)
+  return {
+    type: 'Polygon',
+    coordinates: [
+      raw.coordinates.map((coord: { lng: number; lat: number }) => [coord.lng, coord.lat])
+    ]
+  };
+}
 
 /**
  * Get all kawasan (active and inactive)
@@ -26,10 +72,14 @@ export async function getAllKawasan(): Promise<Kawasan[]> {
     const q = query(kawasanRef, orderBy('name', 'asc'));
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Kawasan[];
+    return snapshot.docs.map((d) => {
+      const data = d.data();
+      return {
+        ...data,
+        id: d.id,
+        boundaries: boundariesFromFirestore(data.boundaries)
+      } as Kawasan;
+    });
   } catch (error) {
     console.error('Error fetching kawasan:', error);
     throw new Error('Gagal mendapatkan data kawasan');
@@ -49,10 +99,14 @@ export async function getActiveKawasan(): Promise<Kawasan[]> {
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Kawasan[];
+    return snapshot.docs.map((d) => {
+      const data = d.data();
+      return {
+        ...data,
+        id: d.id,
+        boundaries: boundariesFromFirestore(data.boundaries)
+      } as Kawasan;
+    });
   } catch (error) {
     console.error('Error fetching active kawasan:', error);
     throw new Error('Gagal mendapatkan data kawasan aktif');
@@ -71,9 +125,11 @@ export async function getKawasanById(id: string): Promise<Kawasan | null> {
       return null;
     }
 
+    const data = snapshot.data();
     return {
+      ...data,
       id: snapshot.id,
-      ...snapshot.data()
+      boundaries: boundariesFromFirestore(data.boundaries)
     } as Kawasan;
   } catch (error) {
     console.error('Error fetching kawasan by ID:', error);
@@ -97,6 +153,7 @@ export async function createKawasan(
     const kawasanRef = collection(db, KAWASAN_COLLECTION);
     const docRef = await addDoc(kawasanRef, {
       ...data,
+      boundaries: boundariesToFirestore(data.boundaries),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -128,10 +185,11 @@ export async function updateKawasan(
     }
 
     const kawasanRef = doc(db, KAWASAN_COLLECTION, id);
-    await updateDoc(kawasanRef, {
-      ...data,
-      updatedAt: serverTimestamp()
-    });
+    const updateData: any = { ...data, updatedAt: serverTimestamp() };
+    if (data.boundaries !== undefined) {
+      updateData.boundaries = boundariesToFirestore(data.boundaries ?? null);
+    }
+    await updateDoc(kawasanRef, updateData);
   } catch (error) {
     console.error('Error updating kawasan:', error);
     if (error instanceof Error) {
