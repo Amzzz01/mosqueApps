@@ -1,20 +1,64 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Clock,
   MessageSquare,
   Phone,
-  Users,
   Heart,
   BookOpen,
   Calendar,
   ArrowRight,
-  Star,
   HandHeart,
-  GraduationCap,
   UserPlus,
+  ImageIcon,
 } from 'lucide-react';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { Kuliah, Aktiviti } from '@/types';
 
-export default function HomePage() {
+export const revalidate = 30;
+
+async function getActiveKuliah(): Promise<Kuliah[]> {
+  try {
+    const q = query(
+      collection(db, 'kuliah'),
+      where('aktif', '==', true),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return { id: doc.id, ...data } as Kuliah;
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function getRecentAktiviti(): Promise<Aktiviti[]> {
+  try {
+    const q = query(
+      collection(db, 'activities'),
+      where('published', '==', true),
+      orderBy('tarikh', 'desc'),
+      limit(4)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return { id: doc.id, ...data } as Aktiviti;
+    });
+  } catch {
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  const [kuliahList, aktivitiList] = await Promise.all([
+    getActiveKuliah(),
+    getRecentAktiviti(),
+  ]);
+
   const services = [
     {
       icon: Clock,
@@ -22,7 +66,6 @@ export default function HomePage() {
       description: 'Lihat waktu solat harian dari JAKIM untuk kawasan anda.',
       href: '/prayer-times',
       color: 'from-blue-500 to-blue-600',
-      bgHover: 'group-hover:bg-blue-50',
     },
     {
       icon: MessageSquare,
@@ -30,7 +73,6 @@ export default function HomePage() {
       description: 'Maklumat dan berita terkini dari pihak masjid.',
       href: '/announcements',
       color: 'from-purple-500 to-purple-600',
-      bgHover: 'group-hover:bg-purple-50',
     },
     {
       icon: Phone,
@@ -38,38 +80,6 @@ export default function HomePage() {
       description: 'Alamat, lokasi, dan cara menghubungi masjid.',
       href: '/contact',
       color: 'from-emerald-500 to-emerald-600',
-      bgHover: 'group-hover:bg-emerald-50',
-    },
-  ];
-
-  const kuliahSchedule = [
-    {
-      day: 'Isnin & Khamis',
-      time: '8:30 PM',
-      title: 'Kelas Mengaji Al-Quran',
-      speaker: 'Ustaz Ahmad',
-      icon: BookOpen,
-    },
-    {
-      day: 'Selasa',
-      time: '9:00 PM',
-      title: 'Kuliah Hadis',
-      speaker: 'Ustaz Zulkifli',
-      icon: GraduationCap,
-    },
-    {
-      day: 'Jumaat',
-      time: '1:00 PM',
-      title: 'Khutbah Jumaat',
-      speaker: 'Khatib Jemputan',
-      icon: Star,
-    },
-    {
-      day: 'Sabtu',
-      time: '10:00 AM',
-      title: 'Kelas Fardhu Ain',
-      speaker: 'Ustazah Fatimah',
-      icon: Users,
     },
   ];
 
@@ -182,34 +192,106 @@ export default function HomePage() {
               Pelbagai kuliah dan kelas untuk meningkatkan ilmu agama anda.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 max-w-6xl mx-auto">
-            {kuliahSchedule.map((item, idx) => {
-              const Icon = item.icon;
-              return (
+
+          {kuliahList.length > 0 ? (
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 max-w-6xl mx-auto">
+              {kuliahList.slice(0, 4).map((kuliah) => (
                 <div
-                  key={idx}
+                  key={kuliah.id}
                   className="flex items-start gap-4 xl:flex-col xl:items-center xl:text-center bg-gray-50 rounded-xl p-5 lg:p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="w-11 h-11 lg:w-14 lg:h-14 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
+                    <BookOpen className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 lg:text-lg">{item.title}</h3>
+                    <h3 className="font-bold text-gray-900 lg:text-lg">{kuliah.tajuk}</h3>
                     <div className="flex items-center gap-2 mt-1.5 lg:mt-2 text-sm text-gray-500 xl:justify-center">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>{item.day}</span>
+                      <span>{kuliah.hari}</span>
                       <span className="text-gray-300">|</span>
                       <Clock className="w-3.5 h-3.5" />
-                      <span>{item.time}</span>
+                      <span>{kuliah.masa}</span>
                     </div>
-                    <p className="text-sm lg:text-base text-emerald-600 mt-1 lg:mt-2 font-medium">{item.speaker}</p>
+                    <p className="text-sm lg:text-base text-emerald-600 mt-1 lg:mt-2 font-medium">{kuliah.penceramah}</p>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Jadual kuliah akan dikemaskini tidak lama lagi.</p>
+            </div>
+          )}
+
+          <div className="text-center mt-10">
+            <Link
+              href="/kuliah"
+              className="inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
+            >
+              Lihat Semua Kuliah
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
+
+      {/* ========== ACTIVITY GALLERY PREVIEW ========== */}
+      {aktivitiList.length > 0 && (
+        <section className="py-16 md:py-20 lg:py-24 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12 lg:mb-16">
+              <p className="text-emerald-600 font-semibold text-sm lg:text-base uppercase tracking-wider mb-3">
+                Galeri Aktiviti
+              </p>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
+                Aktiviti Terkini
+              </h2>
+              <p className="text-gray-500 mt-3 lg:mt-4 max-w-lg lg:max-w-xl mx-auto lg:text-lg">
+                Gambar dan dokumentasi aktiviti terbaharu masjid kami.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {aktivitiList.map(aktiviti => (
+                <div
+                  key={aktiviti.id}
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                >
+                  <div className="aspect-video bg-gray-100 relative">
+                    {aktiviti.gambarUrls?.length > 0 ? (
+                      <Image
+                        src={aktiviti.gambarUrls[0]}
+                        alt={aktiviti.tajuk}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <ImageIcon className="w-8 h-8 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-900 line-clamp-1">{aktiviti.tajuk}</h3>
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{aktiviti.keterangan}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-10">
+              <Link
+                href="/galeri"
+                className="inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
+              >
+                Lihat Semua Aktiviti
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ========== DONATION ========== */}
       <section id="derma" className="py-16 md:py-20 lg:py-24 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 text-white scroll-mt-20">
@@ -236,13 +318,13 @@ export default function HomePage() {
                 <p className="text-lg lg:text-2xl font-bold">Maybank &bull; 1234-5678-9012</p>
                 <p className="text-sm lg:text-base text-emerald-200 mt-1">Masjid Al-Falah Telok Bagan</p>
               </div>
-              <div className="text-center lg:text-left">
+              <div className="text-center lg:text-left space-y-3">
                 <Link
-                  href="/contact"
+                  href="/derma"
                   className="inline-flex items-center gap-2.5 bg-white text-emerald-700 px-7 py-3.5 lg:px-9 lg:py-4 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl text-sm lg:text-base"
                 >
                   <Heart className="w-4 h-4 lg:w-5 lg:h-5" />
-                  Hubungi Untuk Maklumat Lanjut
+                  Lihat Maklumat Derma
                 </Link>
               </div>
             </div>

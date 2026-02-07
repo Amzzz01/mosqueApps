@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: authenticated user
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Activities - Public can list (max 50), Admin can write
+    match /activities/{docId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 50;
+      allow create, update, delete: if isAuth();
+    }
+
+    // Announcements - Public can read, Admin can write
+    match /announcements/{docId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 50;
+      allow create, update, delete: if isAuth();
+    }
+
+    // Kuliah (lectures) - Public can read, Admin can write
+    match /kuliah/{docId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 50;
+      allow create, update, delete: if isAuth();
+    }
+
+    // Donations - Public can read, Admin can write
+    match /donations/{docId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 50;
+      allow create, update, delete: if isAuth();
+    }
+
+    // Members (anakKariah) - Admin only
+    match /anakKariah/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // Members (legacy collection) - Admin only
+    match /members/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // Kawasan (kariah areas) - Admin only
+    match /kawasan/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // Admin users - Admin only
+    match /adminUsers/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // Deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

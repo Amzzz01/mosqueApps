@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase logout:*)",
+      "Bash(firebase login:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)"
+    ]
+  }
+}

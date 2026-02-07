@@ -187,6 +187,34 @@ export interface DashboardStats {
   recentActivities: number;
 }
 
+// Lecture Schedule Types (Jadual Kuliah)
+export interface Kuliah {
+  id?: string;
+  tajuk: string;
+  penceramah: string;
+  hari: string;
+  masa: string;
+  lokasi: string;
+  kategori: 'quran' | 'hadis' | 'fiqh' | 'akhlak' | 'umum';
+  keterangan?: string;
+  aktif: boolean;
+  createdAt: Date | Timestamp;
+  updatedAt: Date | Timestamp;
+}
+
+// Activity Gallery Types (Galeri Aktiviti)
+export interface Aktiviti {
+  id?: string;
+  tajuk: string;
+  keterangan: string;
+  tarikh: Date | Timestamp;
+  kategori: 'keagamaan' | 'pendidikan' | 'kemasyarakatan' | 'kebajikan' | 'lain';
+  gambarUrls: string[];
+  published: boolean;
+  createdAt: Date | Timestamp;
+  updatedAt: Date | Timestamp;
+}
+
 // Filter Types
 export interface MemberFilter {
   searchTerm?: string;

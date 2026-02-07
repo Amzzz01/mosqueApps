@@ -8,9 +8,9 @@ import { UserRoundCog, Building2 } from 'lucide-react';
 const navLinks = [
   { href: '/', label: 'Utama' },
   { href: '/announcements', label: 'Pengumuman' },
-  { href: '/#kuliah', label: 'Kuliah' },
-  { href: '/#derma', label: 'Derma' },
-  { href: '/#daftar', label: 'Daftar' },
+  { href: '/kuliah', label: 'Kuliah' },
+  { href: '/galeri', label: 'Galeri' },
+  { href: '/derma', label: 'Derma' },
 ];
 
 export default function Navigation() {
@@ -39,7 +39,6 @@ export default function Navigation() {
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
-    if (href.startsWith('/#')) return pathname === '/';
     return pathname === href || pathname?.startsWith(href + '/');
   };
 

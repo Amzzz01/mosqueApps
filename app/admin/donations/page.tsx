@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, Timestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Donation } from '@/types';
-import { Plus, Download, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Download, DollarSign, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { ms } from 'date-fns/locale';
@@ -185,6 +185,17 @@ export default function DonationsPage() {
     return labels[category] || category;
   };
 
+  const handleDelete = async (id: string, donorName: string) => {
+    if (!confirm(`Adakah anda pasti mahu memadam rekod derma daripada "${donorName || 'Tanpa Nama'}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'donations', id));
+      toast.success('Rekod derma berjaya dipadam');
+      fetchDonations();
+    } catch {
+      toast.error('Gagal memadam rekod derma');
+    }
+  };
+
   const getPaymentMethodLabel = (method: string) => {
     const labels: Record<string, string> = {
       cash: 'Tunai',
@@ -315,12 +326,15 @@ export default function DonationsPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Kaedah
               </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tindakan
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredDonations.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                   Tiada rekod derma dijumpai
                 </td>
               </tr>
@@ -350,6 +364,24 @@ export default function DonationsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {getPaymentMethodLabel(donation.paymentMethod)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <Link
+                          href={`/admin/donations/${donation.id}/edit`}
+                          className="text-emerald-600 hover:text-emerald-900 p-1"
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(donation.id!, donation.donorName)}
+                          className="text-red-600 hover:text-red-900 p-1"
+                          title="Padam"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

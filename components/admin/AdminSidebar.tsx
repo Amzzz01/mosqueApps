@@ -15,7 +15,9 @@ import {
   Building2,
   X,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  BookOpen,
+  ImageIcon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -219,6 +221,28 @@ export default function AdminSidebar({
           >
             <DollarSign className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Derma</span>
+          </Link>
+
+          {/* Jadual Kuliah */}
+          <Link
+            href="/admin/kuliah"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/kuliah') || isParentActive('/admin/kuliah') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Jadual Kuliah' : undefined}
+          >
+            <BookOpen className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Jadual Kuliah</span>
+          </Link>
+
+          {/* Galeri Aktiviti */}
+          <Link
+            href="/admin/aktiviti"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/aktiviti') || isParentActive('/admin/aktiviti') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Galeri Aktiviti' : undefined}
+          >
+            <ImageIcon className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Galeri Aktiviti</span>
           </Link>
 
           {/* Pengumuman */}

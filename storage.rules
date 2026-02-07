@@ -1,0 +1,65 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: validate image file
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|gif|webp)');
+    }
+
+    // Helper: file under 5MB
+    function isUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Helper: authenticated user
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Activities images
+    match /aktiviti/{allPaths=**} {
+      allow read: if true;
+      allow create: if isAuth() && isImage() && isUnder5MB();
+      allow update: if isAuth() && isImage() && isUnder5MB();
+      allow delete: if isAuth();
+    }
+
+    // Announcements images
+    match /announcements/{allPaths=**} {
+      allow read: if true;
+      allow create: if isAuth() && isImage() && isUnder5MB();
+      allow update: if isAuth() && isImage() && isUnder5MB();
+      allow delete: if isAuth();
+    }
+
+    // Donation QR codes
+    match /donations/{allPaths=**} {
+      allow read: if true;
+      allow create: if isAuth() && isImage() && isUnder5MB();
+      allow update: if isAuth() && isImage() && isUnder5MB();
+      allow delete: if isAuth();
+    }
+
+    // Lectures/Kuliah images
+    match /lectures/{allPaths=**} {
+      allow read: if true;
+      allow create: if isAuth() && isImage() && isUnder5MB();
+      allow update: if isAuth() && isImage() && isUnder5MB();
+      allow delete: if isAuth();
+    }
+
+    // Gallery images
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      allow create: if isAuth() && isImage() && isUnder5MB();
+      allow update: if isAuth() && isImage() && isUnder5MB();
+      allow delete: if isAuth();
+    }
+
+    // Deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
