@@ -145,7 +145,9 @@ export default function KariahMapForm() {
     if (!isClient || !mapRef.current || loadingMap) return;
 
     if (!mapInstanceRef.current) {
-      const map = L.map(mapRef.current).setView([5.4141, 100.3288], 13);
+      const map = L.map(mapRef.current, {
+        keyboard: false,
+      }).setView([5.4141, 100.3288], 13);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
@@ -275,16 +277,26 @@ export default function KariahMapForm() {
     }
   };
 
+  // Scroll focused input into view when mobile keyboard opens
+  const scrollToInput = useCallback((e: React.FocusEvent<HTMLElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  }, []);
+
   const inputClass = (hasError: boolean) =>
-    `w-full px-4 py-3.5 rounded-xl border bg-white text-base ${
+    `w-full max-w-full min-w-0 px-4 py-3.5 rounded-xl border bg-white text-base ${
       hasError
         ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
         : 'border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500'
     } focus:outline-none focus:ring-2 transition-all duration-200 placeholder:text-gray-400`;
 
-  /* ─── Map panel (reused in both mobile & desktop) ─── */
+  const selectClass = (hasError: boolean) =>
+    `${inputClass(hasError)} appearance-none bg-no-repeat bg-[length:16px_16px] bg-[right_12px_center] pr-10 bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")]`;
+
+  /* ─── Map panel ─── */
   const mapPanel = (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-hidden">
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-md shadow-emerald-500/20">
           <MapPin className="w-4 h-4 text-white" />
@@ -305,10 +317,11 @@ export default function KariahMapForm() {
           </div>
         </div>
       ) : (
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-2xl">
           <div
             ref={mapRef}
-            className="w-full h-[280px] lg:h-[360px] rounded-2xl border-2 border-emerald-200 z-0"
+            tabIndex={-1}
+            className="w-full h-[280px] lg:h-[360px] border-2 border-emerald-200 z-0"
           />
 
           {/* Locate Me */}
@@ -369,7 +382,7 @@ export default function KariahMapForm() {
               setValue('zone', '', { shouldValidate: false });
               setValue('zoneId', '', { shouldValidate: false });
             }}
-            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+            className={`text-sm px-4 py-2 min-h-[44px] rounded-full font-medium transition-colors ${
               !manualZone
                 ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -384,7 +397,7 @@ export default function KariahMapForm() {
               setValue('zone', '', { shouldValidate: false });
               setValue('zoneId', '', { shouldValidate: false });
             }}
-            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+            className={`text-sm px-4 py-2 min-h-[44px] rounded-full font-medium transition-colors ${
               manualZone
                 ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -396,7 +409,8 @@ export default function KariahMapForm() {
 
         {manualZone ? (
           <select
-            className={inputClass(!!errors.zone)}
+            className={selectClass(!!errors.zone)}
+            onFocus={scrollToInput}
             {...register('zone', {
               required: 'Sila pilih kawasan anda'
             })}
@@ -471,8 +485,10 @@ export default function KariahMapForm() {
         </label>
         <input
           type="text"
+          autoComplete="name"
           placeholder="Nama seperti dalam IC"
           className={inputClass(!!errors.fullName)}
+          onFocus={scrollToInput}
           {...register('fullName', { required: 'Nama penuh diperlukan' })}
         />
         {errors.fullName && (
@@ -488,8 +504,11 @@ export default function KariahMapForm() {
           </label>
           <input
             type="text"
+            inputMode="numeric"
+            autoComplete="off"
             placeholder="890101-01-1234"
             className={inputClass(!!errors.icNumber)}
+            onFocus={scrollToInput}
             {...register('icNumber', {
               required: 'No. IC diperlukan',
               validate: (value) =>
@@ -509,8 +528,11 @@ export default function KariahMapForm() {
           </label>
           <input
             type="text"
+            inputMode="tel"
+            autoComplete="tel"
             placeholder="012-3456789"
             className={inputClass(!!errors.phoneNumber)}
+            onFocus={scrollToInput}
             {...register('phoneNumber', {
               required: 'No. telefon diperlukan',
               validate: (value) =>
@@ -533,8 +555,11 @@ export default function KariahMapForm() {
         </label>
         <input
           type="email"
+          inputMode="email"
+          autoComplete="email"
           placeholder="contoh@email.com"
           className={inputClass(!!errors.email)}
+          onFocus={scrollToInput}
           {...register('email', {
             required: 'E-mel diperlukan',
             pattern: {
@@ -555,8 +580,10 @@ export default function KariahMapForm() {
         </label>
         <textarea
           rows={3}
+          autoComplete="street-address"
           placeholder="Alamat rumah lengkap"
           className={inputClass(!!errors.address)}
+          onFocus={scrollToInput}
           {...register('address', { required: 'Alamat diperlukan' })}
         />
         {errors.address && (
@@ -571,9 +598,11 @@ export default function KariahMapForm() {
         </label>
         <input
           type="number"
+          inputMode="numeric"
           min="0"
           placeholder="0"
           className={inputClass(false)}
+          onFocus={scrollToInput}
           {...register('familyMembers', {
             min: { value: 0, message: 'Tidak boleh kurang dari 0' }
           })}
@@ -652,33 +681,26 @@ export default function KariahMapForm() {
   );
 
   return (
-    <>
-      {/* ─── MOBILE / TABLET: stacked single-column ─── */}
-      <div className="lg:hidden p-5 sm:p-8 space-y-8">
-        {mapPanel}
-        <div className="h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
+    <div className="flex flex-col lg:flex-row gap-8 lg:gap-0">
+      {/* Progress stepper rail — desktop only */}
+      <div className="hidden lg:flex flex-shrink-0 w-16 bg-gray-50/80 border-r border-emerald-100 justify-center py-10">
+        {stepper}
+      </div>
+
+      {/* Map panel — rendered ONCE, responsive via CSS */}
+      <div className="min-w-0 lg:w-[42%] lg:flex-shrink-0 lg:border-r lg:border-emerald-100">
+        <div className="p-5 sm:p-8 lg:sticky lg:top-0 lg:max-h-screen lg:overflow-y-auto lg:p-8">
+          {mapPanel}
+        </div>
+      </div>
+
+      {/* Divider — mobile only */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent mx-5 sm:mx-8 lg:hidden" />
+
+      {/* Form panel — rendered ONCE */}
+      <div className="flex-1 min-w-0 p-5 sm:p-8 pb-32 lg:p-10 lg:pb-10">
         {formPanel}
       </div>
-
-      {/* ─── DESKTOP: two-column with sticky map ─── */}
-      <div className="hidden lg:flex">
-        {/* Progress stepper rail */}
-        <div className="flex-shrink-0 w-16 bg-gray-50/80 border-r border-emerald-100 flex justify-center py-10">
-          {stepper}
-        </div>
-
-        {/* Left column — sticky map */}
-        <div className="w-[42%] flex-shrink-0 border-r border-emerald-100">
-          <div className="sticky top-0 max-h-screen overflow-y-auto p-8 space-y-4">
-            {mapPanel}
-          </div>
-        </div>
-
-        {/* Right column — scrollable form */}
-        <div className="flex-1 min-w-0 p-8 lg:p-10">
-          {formPanel}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

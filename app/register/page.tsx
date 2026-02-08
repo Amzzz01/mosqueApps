@@ -43,14 +43,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-b from-teal-900 via-emerald-900 to-emerald-950">
+    <div className="relative min-h-screen-safe bg-gradient-to-b from-teal-900 via-emerald-900 to-emerald-950 ios-scroll" style={{ touchAction: 'manipulation' }}>
       {/* Full-page Islamic geometric pattern */}
-      <div className="islamic-pattern fixed inset-0 z-0 pointer-events-none" />
+      <div className="islamic-pattern absolute inset-0 z-0 pointer-events-none" />
 
       {/* Radial glow accents */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-teal-400/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[400px] h-[400px] bg-emerald-400/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-teal-400/6 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-400/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Content wrapper */}
       <div className="relative z-10">
@@ -126,7 +126,7 @@ export default function RegisterPage() {
 
         {/* Form Section — wide modal */}
         <section ref={formRef} className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-          <div className="animate-fade-in-up bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl shadow-black/20 border border-white/20 overflow-hidden">
+          <div className="animate-fade-in-up bg-white/95 rounded-3xl shadow-2xl shadow-black/20 border border-white/20">
             <KariahMapForm />
           </div>
 

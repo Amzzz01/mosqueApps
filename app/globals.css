@@ -147,6 +147,53 @@
 .animate-scale-in     { animation: scaleIn 0.6s ease-out both; }
 .animate-float        { animation: floatSlow 4s ease-in-out infinite; }
 
+/* Mobile keyboard support */
+html, body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.min-h-screen-safe {
+  min-height: 100vh;
+}
+
+@supports (min-height: 100dvh) {
+  .min-h-screen-safe {
+    min-height: 100dvh;
+  }
+}
+
+.ios-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Ensure form inputs are always interactive — override any inherited touch-action */
+input, textarea, select, button {
+  touch-action: manipulation;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+/* Mobile-friendly select and input sizing */
+select, input, textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+select option {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Contain Leaflet's touch-action: none within the map container only */
+.leaflet-container ~ * {
+  touch-action: manipulation;
+}
+
 .islamic-pattern {
   background-image:
     linear-gradient(30deg,  rgba(255,255,255,.03) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,.03) 87.5%),
