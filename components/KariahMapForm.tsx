@@ -247,7 +247,7 @@ export default function KariahMapForm() {
     setSubmitError('');
 
     try {
-      await addDoc(collection(db, 'members'), {
+      await addDoc(collection(db, 'anakKariah'), {
         fullName: data.fullName.trim(),
         icNumber: data.icNumber.replace(/[\s-]/g, ''),
         phoneNumber: data.phoneNumber.replace(/[\s\-+]/g, ''),

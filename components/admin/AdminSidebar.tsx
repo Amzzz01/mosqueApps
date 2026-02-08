@@ -255,14 +255,25 @@ export default function AdminSidebar({
             <MessageSquare className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Pengumuman</span>
           </Link>
+
+          {/* Log Keluar */}
+          <div className="pt-2 mt-2 border-t border-gray-700">
+            <button
+              onClick={handleLogout}
+              className={`w-full ${navItemBase} gap-3 px-3 py-2.5 text-red-400 hover:bg-red-600/20 hover:text-red-300 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+              title={collapsed ? 'Log Keluar' : undefined}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Log Keluar</span>
+            </button>
+          </div>
         </nav>
 
-        {/* Bottom section */}
-        <div className="border-t border-gray-800 p-2 space-y-1">
-          {/* Desktop collapse toggle */}
+        {/* Desktop collapse toggle */}
+        <div className="hidden lg:block border-t border-gray-800 p-2">
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800/50 hover:text-white transition-all text-sm justify-center"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800/50 hover:text-white transition-all text-sm justify-center"
             title={collapsed ? 'Kembangkan' : 'Kecilkan'}
           >
             {collapsed ? (
@@ -273,16 +284,6 @@ export default function AdminSidebar({
                 <span className="whitespace-nowrap">Kecilkan Menu</span>
               </>
             )}
-          </button>
-
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className={`w-full flex items-center gap-2 px-3 py-2.5 bg-red-600/90 hover:bg-red-600 text-white rounded-lg transition-all text-sm font-medium ${collapsed ? 'lg:justify-center lg:px-0' : 'justify-center'}`}
-            title={collapsed ? 'Log Keluar' : undefined}
-          >
-            <LogOut className="w-4 h-4 flex-shrink-0" />
-            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Log Keluar</span>
           </button>
         </div>
       </aside>

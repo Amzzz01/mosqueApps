@@ -29,7 +29,7 @@ export default function MembersPage() {
   const fetchMembers = async () => {
     try {
       const membersQuery = query(
-        collection(db, 'members'),
+        collection(db, 'anakKariah'),
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(membersQuery);
@@ -79,7 +79,7 @@ export default function MembersPage() {
     }
 
     try {
-      await deleteDoc(doc(db, 'members', id));
+      await deleteDoc(doc(db, 'anakKariah', id));
       toast.success('Ahli berjaya dipadam');
       fetchMembers();
     } catch (error) {

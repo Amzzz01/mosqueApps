@@ -101,14 +101,14 @@ export default function MemberForm({ member, mode }: MemberFormProps) {
       };
 
       if (mode === 'create') {
-        await addDoc(collection(db, 'members'), {
+        await addDoc(collection(db, 'anakKariah'), {
           ...memberData,
           registrationDate: serverTimestamp(),
           createdAt: serverTimestamp(),
         });
         toast.success('Ahli berjaya ditambah');
       } else if (member?.id) {
-        await updateDoc(doc(db, 'members', member.id), memberData);
+        await updateDoc(doc(db, 'anakKariah', member.id), memberData);
         toast.success('Ahli berjaya dikemas kini');
       }
 

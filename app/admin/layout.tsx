@@ -2,11 +2,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import ProtectedRoute from '@/components/admin/ProtectedRoute';
-import { Menu, Building2 } from 'lucide-react';
+import { Menu, Building2, LogOut } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const SIDEBAR_KEY = 'admin-sidebar-collapsed';
 
@@ -16,6 +17,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Mobile drawer state (never persisted)
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -40,6 +42,14 @@ export default function AdminLayout({
       return next;
     });
   }, []);
+
+  const handleLogout = useCallback(() => {
+    const confirm = window.confirm('Adakah anda pasti untuk log keluar?');
+    if (confirm) {
+      toast.success('Log keluar berjaya');
+      router.push('/');
+    }
+  }, [router]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -103,11 +113,19 @@ export default function AdminLayout({
                 </div>
 
                 {/* Header Actions */}
-                <div className="hidden md:flex items-center gap-3">
-                  <div className="text-right">
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden md:block">
                     <p className="text-sm font-semibold">Administrator</p>
                     <p className="text-xs text-teal-100">admin@masjid.com</p>
                   </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 hover:bg-red-500/30 rounded-lg transition-colors"
+                    aria-label="Log Keluar"
+                    title="Log Keluar"
+                  >
+                    <LogOut className="w-5 h-5 text-red-200 hover:text-white" />
+                  </button>
                 </div>
               </div>
             </header>
