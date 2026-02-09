@@ -54,15 +54,15 @@ function mapGender(gender: string): 'Lelaki' | 'Perempuan' {
   }
 }
 
-function mapStatus(status: string): 'pending' | 'approved' | 'rejected' {
+function mapStatus(status: string): 'aktif' | 'tidak_aktif' {
   switch (status?.toLowerCase()) {
     case 'active':
-      return 'approved';
+      return 'aktif';
     case 'inactive':
-      return 'pending';
+      return 'tidak_aktif';
     default:
-      console.warn(`  ⚠ Unknown membershipStatus "${status}", defaulting to "pending"`);
-      return 'pending';
+      console.warn(`  ⚠ Unknown membershipStatus "${status}", defaulting to "aktif"`);
+      return 'aktif';
   }
 }
 

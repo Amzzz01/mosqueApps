@@ -289,24 +289,24 @@ export async function getKawasanStats(kawasanId: string) {
     const snapshot = await getDocs(q);
 
     const total = snapshot.size;
-    const approved = snapshot.docs.filter(
-      (doc) => doc.data().status === 'approved'
+    const aktif = snapshot.docs.filter(
+      (doc) => doc.data().status === 'aktif'
     ).length;
-    const pending = snapshot.docs.filter(
-      (doc) => doc.data().status === 'pending'
+    const tidakAktif = snapshot.docs.filter(
+      (doc) => doc.data().status === 'tidak_aktif'
     ).length;
 
     return {
       total,
-      approved,
-      pending
+      aktif,
+      tidakAktif
     };
   } catch (error) {
     console.error('Error getting kawasan stats:', error);
     return {
       total: 0,
-      approved: 0,
-      pending: 0
+      aktif: 0,
+      tidakAktif: 0
     };
   }
 }

@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Loader2, MapPin, User, CreditCard, Home, Phone, Calend
 import dynamic from 'next/dynamic';
 import { getActiveKawasan } from '@/lib/kawasan';
 import { createAnakKariah } from '@/lib/anakKariah';
+import { useAuth } from '@/contexts/AuthContext';
 import { geocodeAddress } from '@/lib/geocoding';
 import { findKawasanByPoint } from '@/lib/pointInPolygon';
 import { validateIC, autoFormatIC, autoFormatPhone, validatePhoneNumber, getBirthDateFromIC } from '@/lib/validation';
@@ -20,6 +21,7 @@ const KariahMapViewer = dynamic(
 
 export default function TambahAnakKariahPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [kawasanList, setKawasanList] = useState<Kawasan[]>([]);
@@ -34,7 +36,8 @@ export default function TambahAnakKariahPage() {
     telefon: '',
     jantina: '' as 'Lelaki' | 'Perempuan' | '',
     tarikhLahir: '',
-    status: 'approved' as 'pending' | 'approved' | 'rejected'
+    status: 'aktif' as 'aktif' | 'tidak_aktif',
+    catatan: ''
   });
 
   useEffect(() => {
@@ -133,8 +136,9 @@ export default function TambahAnakKariahPage() {
         telefon: formData.telefon,
         jantina: formData.jantina as 'Lelaki' | 'Perempuan',
         tarikhLahir: new Date(formData.tarikhLahir),
-        status: formData.status
-      });
+        status: formData.status,
+        catatan: formData.catatan.trim()
+      }, user?.email || 'admin');
 
       toast.success('Anak kariah berjaya ditambah!');
       router.push('/admin/pengurusan-ahli/anak-kariah');
@@ -309,18 +313,40 @@ export default function TambahAnakKariahPage() {
               </div>
             </div>
 
-            {/* Status */}
+            {/* Status Toggle */}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as 'pending' | 'approved' | 'rejected' }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({
+                  ...prev,
+                  status: prev.status === 'aktif' ? 'tidak_aktif' : 'aktif'
+                }))}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                  formData.status === 'aktif' ? 'bg-green-500' : 'bg-gray-300'
+                }`}
               >
-                <option value="approved">Diluluskan</option>
-                <option value="pending">Menunggu</option>
-                <option value="rejected">Ditolak</option>
-              </select>
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    formData.status === 'aktif' ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="ml-3 text-sm text-gray-600">
+                {formData.status === 'aktif' ? 'Aktif' : 'Tidak Aktif'}
+              </span>
+            </div>
+
+            {/* Catatan */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Catatan</label>
+              <textarea
+                value={formData.catatan}
+                onChange={(e) => setFormData((prev) => ({ ...prev, catatan: e.target.value }))}
+                placeholder="Nota tambahan untuk ahli ini (pilihan)"
+                rows={3}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+              />
             </div>
           </div>
 

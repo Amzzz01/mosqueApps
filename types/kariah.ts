@@ -31,7 +31,7 @@ export interface KawasanFormData {
 
 // Anak Kariah (Parish Member) types
 export type JantinaType = 'Lelaki' | 'Perempuan';
-export type StatusType = 'pending' | 'approved' | 'rejected';
+export type StatusType = 'aktif' | 'tidak_aktif';
 export type DetectionMethodType = 'auto' | 'manual';
 
 export interface Coordinates {
@@ -53,6 +53,13 @@ export interface AnakKariah {
   jantina: JantinaType;
   tarikhLahir: Timestamp;
   status: StatusType;
+  catatan?: string;
+  activatedBy?: string | null;
+  activatedAt?: Timestamp | null;
+  deactivatedBy?: string | null;
+  deactivatedAt?: Timestamp | null;
+  lastModifiedBy?: string | null;
+  lastModifiedAt?: Timestamp | null;
   isDeleted?: boolean;
   deletedAt?: Timestamp | null;
   deletedBy?: string | null;
@@ -73,6 +80,7 @@ export interface AnakKariahFormData {
   jantina: JantinaType;
   tarikhLahir: Date;
   status: StatusType;
+  catatan?: string;
 }
 
 // Statistics types
@@ -80,15 +88,16 @@ export interface KawasanStats {
   kawasanId: string;
   kawasanName: string;
   totalMembers: number;
-  pendingMembers: number;
-  approvedMembers: number;
+  aktifMembers: number;
+  tidakAktifMembers: number;
   color: string;
 }
 
 export interface DashboardStats {
   totalMembers: number;
   totalKawasan: number;
-  pendingApprovals: number;
+  aktifMembers: number;
+  tidakAktifMembers: number;
   recentRegistrations: number;
   membersByKawasan: KawasanStats[];
 }

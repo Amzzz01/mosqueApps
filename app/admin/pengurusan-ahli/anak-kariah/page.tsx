@@ -8,15 +8,15 @@ import {
   Loader2,
   Users,
   UserCheck,
-  Clock,
-  XCircle,
+  UserX,
   ChevronLeft,
   ChevronRight,
   X
 } from 'lucide-react';
-import { getAllAnakKariah, softDeleteAnakKariah } from '@/lib/anakKariah';
+import { getAllAnakKariah, softDeleteAnakKariah, toggleMemberStatus } from '@/lib/anakKariah';
 import { getAllKawasan } from '@/lib/kawasan';
 import { AnakKariah, Kawasan } from '@/types/kariah';
+import { useAuth } from '@/contexts/AuthContext';
 import AkKariahTable from '@/components/admin/anak-kariah/AkKariahTable';
 import AkKariahDetails from '@/components/admin/anak-kariah/AkKariahDetails';
 import DeleteConfirmation from '@/components/admin/anak-kariah/DeleteConfirmation';
@@ -25,6 +25,7 @@ import toast from 'react-hot-toast';
 const ITEMS_PER_PAGE = 15;
 
 export default function AnakKariahListPage() {
+  const { user } = useAuth();
   const [allMembers, setAllMembers] = useState<AnakKariah[]>([]);
   const [kawasanList, setKawasanList] = useState<Kawasan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,7 @@ export default function AnakKariahListPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AnakKariah | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -108,9 +110,8 @@ export default function AnakKariahListPage() {
   // Stats
   const stats = useMemo(() => ({
     total: allMembers.length,
-    approved: allMembers.filter((m) => m.status === 'approved').length,
-    pending: allMembers.filter((m) => m.status === 'pending').length,
-    rejected: allMembers.filter((m) => m.status === 'rejected').length,
+    aktif: allMembers.filter((m) => m.status === 'aktif').length,
+    tidakAktif: allMembers.filter((m) => m.status === 'tidak_aktif').length,
   }), [allMembers]);
 
   // Handlers
@@ -121,6 +122,19 @@ export default function AnakKariahListPage() {
 
   const handleDeleteClick = (member: AnakKariah) => {
     setDeleteTarget(member);
+  };
+
+  const handleToggleStatus = async (member: AnakKariah) => {
+    try {
+      setTogglingId(member.id);
+      const newStatus = await toggleMemberStatus(member.id, user?.email || 'admin');
+      toast.success(`Status ${member.namaPenuh} dikemas kini kepada ${newStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif'}`);
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal mengemas kini status');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -178,7 +192,7 @@ export default function AnakKariahListPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -196,30 +210,19 @@ export default function AnakKariahListPage() {
                 <UserCheck className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Diluluskan</p>
-                <p className="text-xl font-bold text-gray-900">{stats.approved}</p>
+                <p className="text-xs text-gray-500">Aktif</p>
+                <p className="text-xl font-bold text-gray-900">{stats.aktif}</p>
               </div>
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <UserX className="w-5 h-5 text-gray-500" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Menunggu</p>
-                <p className="text-xl font-bold text-gray-900">{stats.pending}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Ditolak</p>
-                <p className="text-xl font-bold text-gray-900">{stats.rejected}</p>
+                <p className="text-xs text-gray-500">Tidak Aktif</p>
+                <p className="text-xl font-bold text-gray-900">{stats.tidakAktif}</p>
               </div>
             </div>
           </div>
@@ -247,9 +250,8 @@ export default function AnakKariahListPage() {
               className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm min-w-[160px]"
             >
               <option value="all">Semua Status</option>
-              <option value="approved">Diluluskan</option>
-              <option value="pending">Menunggu</option>
-              <option value="rejected">Ditolak</option>
+              <option value="aktif">Aktif</option>
+              <option value="tidak_aktif">Tidak Aktif</option>
             </select>
 
             {/* Kawasan Filter */}
@@ -288,8 +290,10 @@ export default function AnakKariahListPage() {
         <AkKariahTable
           members={paginatedMembers}
           deletingId={deletingId}
+          togglingId={togglingId}
           onViewDetails={handleViewDetails}
           onDelete={handleDeleteClick}
+          onToggleStatus={handleToggleStatus}
         />
 
         {/* Pagination */}

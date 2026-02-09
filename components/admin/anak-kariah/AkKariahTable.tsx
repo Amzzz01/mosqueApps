@@ -1,43 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import { Eye, Edit, Trash2, Loader2, Users } from 'lucide-react';
+import { Eye, Edit, Trash2, Loader2, Users, ToggleLeft, ToggleRight } from 'lucide-react';
 import { AnakKariah } from '@/types/kariah';
 import { formatFirestoreDate } from '@/lib/formatters';
 
 interface AkKariahTableProps {
   members: AnakKariah[];
   deletingId: string | null;
+  togglingId: string | null;
   onViewDetails: (member: AnakKariah) => void;
   onDelete: (member: AnakKariah) => void;
+  onToggleStatus: (member: AnakKariah) => void;
 }
 
 function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case 'approved':
-      return (
-        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-          Diluluskan
-        </span>
-      );
-    case 'pending':
-      return (
-        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-          Menunggu
-        </span>
-      );
-    case 'rejected':
-      return (
-        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-          Ditolak
-        </span>
-      );
-    default:
-      return null;
+  if (status === 'aktif') {
+    return (
+      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        Aktif
+      </span>
+    );
   }
+  return (
+    <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+      Tidak Aktif
+    </span>
+  );
 }
 
-export default function AkKariahTable({ members, deletingId, onViewDetails, onDelete }: AkKariahTableProps) {
+export default function AkKariahTable({ members, deletingId, togglingId, onViewDetails, onDelete, onToggleStatus }: AkKariahTableProps) {
   if (members.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -81,7 +73,18 @@ export default function AkKariahTable({ members, deletingId, onViewDetails, onDe
                 <td className="py-3 px-4 text-sm text-gray-700">{member.kawasanName || '-'}</td>
                 <td className="py-3 px-4 text-sm text-gray-700 hidden xl:table-cell">{member.telefon}</td>
                 <td className="py-3 px-4 text-center">
-                  <StatusBadge status={member.status} />
+                  <button
+                    onClick={() => onToggleStatus(member)}
+                    disabled={togglingId === member.id}
+                    className="inline-flex items-center gap-1 group"
+                    title={member.status === 'aktif' ? 'Tukar ke Tidak Aktif' : 'Tukar ke Aktif'}
+                  >
+                    {togglingId === member.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    ) : (
+                      <StatusBadge status={member.status} />
+                    )}
+                  </button>
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-500 hidden xl:table-cell">
                   {member.createdAt && typeof member.createdAt.toDate === 'function' ? formatFirestoreDate(member.createdAt) : '-'}
@@ -131,7 +134,17 @@ export default function AkKariahTable({ members, deletingId, onViewDetails, onDe
                 <p className="font-medium text-gray-900">{member.namaPenuh}</p>
                 <p className="text-sm text-gray-500 font-mono">{member.ic}</p>
               </div>
-              <StatusBadge status={member.status} />
+              <button
+                onClick={() => onToggleStatus(member)}
+                disabled={togglingId === member.id}
+                title={member.status === 'aktif' ? 'Tukar ke Tidak Aktif' : 'Tukar ke Aktif'}
+              >
+                {togglingId === member.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                ) : (
+                  <StatusBadge status={member.status} />
+                )}
+              </button>
             </div>
             <div className="text-sm text-gray-600 space-y-1 mb-3">
               <p>{member.kawasanName || '-'}</p>
