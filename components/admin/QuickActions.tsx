@@ -4,7 +4,7 @@ import { UserPlus, DollarSign, Megaphone, Users } from 'lucide-react';
 
 const actions = [
   {
-    href: '/admin/members/new',
+    href: '/admin/pengurusan-ahli/anak-kariah/tambah',
     label: 'Tambah Ahli',
     icon: UserPlus,
     color: 'bg-blue-600 hover:bg-blue-700',
@@ -22,7 +22,7 @@ const actions = [
     color: 'bg-purple-600 hover:bg-purple-700',
   },
   {
-    href: '/admin/members',
+    href: '/admin/pengurusan-ahli/anak-kariah',
     label: 'Lihat Ahli',
     icon: Users,
     color: 'bg-emerald-600 hover:bg-emerald-700',

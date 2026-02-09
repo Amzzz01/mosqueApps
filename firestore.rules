@@ -40,11 +40,6 @@ service cloud.firestore {
       allow read, write: if isAuth();
     }
 
-    // Members (legacy collection) - Admin only
-    match /members/{docId} {
-      allow read, write: if isAuth();
-    }
-
     // Kawasan (kariah areas) - Admin only
     match /kawasan/{docId} {
       allow read, write: if isAuth();

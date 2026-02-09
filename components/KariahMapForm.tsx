@@ -4,12 +4,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useForm } from 'react-hook-form';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Kawasan, Coordinates } from '@/types/kariah';
 import { getActiveKawasan } from '@/lib/kawasan';
 import { findKawasanByPoint } from '@/lib/pointInPolygon';
-import { validateIC, validatePhoneNumber, autoFormatIC, autoFormatPhone } from '@/lib/validation';
+import { validateIC, validatePhoneNumber, autoFormatIC, autoFormatPhone, getBirthDateFromIC } from '@/lib/validation';
 import { MapPin, Loader2, Navigation, CheckCircle, AlertCircle, User, Send } from 'lucide-react';
 
 // Fix Leaflet default marker icon issue
@@ -247,17 +247,32 @@ export default function KariahMapForm() {
     setSubmitError('');
 
     try {
+      const cleanIC = data.icNumber.replace(/[\s-]/g, '');
+      const birthDate = getBirthDateFromIC(cleanIC);
+      // Malaysian IC: last digit odd = Lelaki, even = Perempuan
+      const lastDigit = parseInt(cleanIC.charAt(11), 10);
+      const jantina = lastDigit % 2 === 1 ? 'Lelaki' : 'Perempuan';
+
       await addDoc(collection(db, 'anakKariah'), {
-        fullName: data.fullName.trim(),
-        icNumber: data.icNumber.replace(/[\s-]/g, ''),
-        phoneNumber: data.phoneNumber.replace(/[\s\-+]/g, ''),
+        namaPenuh: data.fullName.trim(),
+        ic: cleanIC,
+        telefon: data.phoneNumber.replace(/[\s\-+]/g, ''),
         email: data.email.trim().toLowerCase(),
-        address: data.address.trim(),
-        zone: data.zone,
-        zoneId: data.zoneId,
+        alamat: data.address.trim(),
+        kawasanName: data.zone,
+        kawasanId: data.zoneId,
+        jantina,
+        tarikhLahir: birthDate ? Timestamp.fromDate(birthDate) : null,
+        coordinates: null,
+        detectionMethod: 'manual',
+        autoDetectedKawasan: null,
         familyMembers: data.familyMembers === '' ? 0 : Number(data.familyMembers),
-        registeredAt: serverTimestamp(),
-        status: 'pending'
+        status: 'pending',
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       setSubmitSuccess(true);

@@ -28,6 +28,12 @@ yarn-error.log*
 .env*.local
 .env
 
+# Firebase service account key
+serviceAccountKey.json
+
+# Script build output
+/dist-scripts
+
 # PWA (next-pwa generated files)
 public/sw.js
 public/sw.js.map

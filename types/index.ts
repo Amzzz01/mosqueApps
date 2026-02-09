@@ -2,23 +2,6 @@
 
 import { Timestamp } from 'firebase/firestore';
 
-// Member Types
-export interface Member {
-  id?: string;
-  fullName: string;
-  icNumber: string;
-  phoneNumber: string;
-  email?: string;
-  address: string;
-  kariahArea?: string;
-  dateOfBirth?: Date | Timestamp;
-  gender: 'male' | 'female';
-  membershipStatus: 'active' | 'inactive';
-  registrationDate: Date | Timestamp;
-  createdAt: Date | Timestamp;
-  updatedAt: Date | Timestamp;
-}
-
 // Donation Types
 export interface Donation {
   id?: string;
@@ -216,13 +199,6 @@ export interface Aktiviti {
 }
 
 // Filter Types
-export interface MemberFilter {
-  searchTerm?: string;
-  kariahArea?: string;
-  membershipStatus?: 'active' | 'inactive';
-  gender?: 'male' | 'female';
-}
-
 export interface DonationFilter {
   startDate?: Date;
   endDate?: Date;
