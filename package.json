@@ -11,6 +11,9 @@
     "migrate:members:execute": "ts-node --project tsconfig.scripts.json src/scripts/migrate-members-to-anak-kariah.ts --execute"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.9.1",
     "@types/leaflet-draw": "^1.0.13",
     "clsx": "^2.1.1",

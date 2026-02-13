@@ -225,9 +225,9 @@ export default function AdminSidebar({
 
           {/* Jadual Kuliah */}
           <Link
-            href="/admin/kuliah"
+            href="/admin/jadual-kuliah"
             onClick={handleNavClick}
-            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/kuliah') || isParentActive('/admin/kuliah') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/jadual-kuliah') || isParentActive('/admin/jadual-kuliah') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
             title={collapsed ? 'Jadual Kuliah' : undefined}
           >
             <BookOpen className="w-5 h-5 flex-shrink-0" />

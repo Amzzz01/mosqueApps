@@ -14,24 +14,37 @@ import {
 } from 'lucide-react';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { Kuliah, Aktiviti } from '@/types';
+import { JadualKuliah, Aktiviti } from '@/types';
 
 export const revalidate = 30;
 
-async function getActiveKuliah(): Promise<Kuliah[]> {
+async function getActiveKuliah(): Promise<JadualKuliah[]> {
   try {
     const q = query(
-      collection(db, 'kuliah'),
-      where('aktif', '==', true),
-      orderBy('createdAt', 'desc')
+      collection(db, 'jadualKuliah'),
+      where('isActive', '==', true),
+      orderBy('sequence', 'asc')
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
       const data = doc.data();
-      return { id: doc.id, ...data } as Kuliah;
+      return { id: doc.id, ...data } as JadualKuliah;
     });
   } catch {
-    return [];
+    // Fallback without orderBy if index missing
+    try {
+      const fallbackQ = query(
+        collection(db, 'jadualKuliah'),
+        where('isActive', '==', true)
+      );
+      const snapshot = await getDocs(fallbackQ);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...data } as JadualKuliah;
+      });
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -195,27 +208,34 @@ export default async function HomePage() {
 
           {kuliahList.length > 0 ? (
             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6 max-w-6xl mx-auto">
-              {kuliahList.slice(0, 4).map((kuliah) => (
-                <div
-                  key={kuliah.id}
-                  className="flex items-start gap-4 xl:flex-col xl:items-center xl:text-center bg-gray-50 rounded-xl p-5 lg:p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className="w-11 h-11 lg:w-14 lg:h-14 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 lg:text-lg">{kuliah.tajuk}</h3>
-                    <div className="flex items-center gap-2 mt-1.5 lg:mt-2 text-sm text-gray-500 xl:justify-center">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{kuliah.hari}</span>
-                      <span className="text-gray-300">|</span>
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{kuliah.masa}</span>
+              {kuliahList.slice(0, 4).map((kuliah) => {
+                const timeStr = kuliah.timeType === 'fixed' && kuliah.fixedTime
+                  ? kuliah.fixedTime
+                  : kuliah.prayerReference
+                    ? `Selepas ${kuliah.prayerReference}`
+                    : '-';
+                return (
+                  <div
+                    key={kuliah.id}
+                    className="flex items-start gap-4 xl:flex-col xl:items-center xl:text-center bg-gray-50 rounded-xl p-5 lg:p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <div className="w-11 h-11 lg:w-14 lg:h-14 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
                     </div>
-                    <p className="text-sm lg:text-base text-emerald-600 mt-1 lg:mt-2 font-medium">{kuliah.penceramah}</p>
+                    <div>
+                      <h3 className="font-bold text-gray-900 lg:text-lg">{kuliah.title}</h3>
+                      <div className="flex items-center gap-2 mt-1.5 lg:mt-2 text-sm text-gray-500 xl:justify-center">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{kuliah.day}</span>
+                        <span className="text-gray-300">|</span>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{timeStr}</span>
+                      </div>
+                      <p className="text-sm lg:text-base text-emerald-600 mt-1 lg:mt-2 font-medium">{kuliah.ustaz}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -226,7 +246,7 @@ export default async function HomePage() {
 
           <div className="text-center mt-10">
             <Link
-              href="/kuliah"
+              href="/jadual-kuliah"
               className="inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
             >
               Lihat Semua Kuliah

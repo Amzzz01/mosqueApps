@@ -7,29 +7,44 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Activities - Public can list (max 50), Admin can write
+    // Activities - Admin full read/write, Public limited read
     match /activities/{docId} {
+      allow read: if isAuth();
       allow get: if true;
       allow list: if request.query.limit <= 50;
       allow create, update, delete: if isAuth();
     }
 
-    // Announcements - Public can read, Admin can write
+    // Announcements - Admin full read/write, Public limited read
     match /announcements/{docId} {
+      allow read: if isAuth();
       allow get: if true;
       allow list: if request.query.limit <= 50;
       allow create, update, delete: if isAuth();
     }
 
-    // Kuliah (lectures) - Public can read, Admin can write
+    // Kuliah (lectures) - legacy, Public can read, Admin can write
     match /kuliah/{docId} {
       allow get: if true;
       allow list: if request.query.limit <= 50;
       allow create, update, delete: if isAuth();
     }
 
-    // Donations - Public can read, Admin can write
+    // Jadual Kuliah v2 - Public can read, Admin can write
+    match /jadualKuliah/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAuth();
+    }
+
+    // Kategori Kuliah - Public can read, Admin can write
+    match /kategoriKuliah/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAuth();
+    }
+
+    // Donations - Admin full read/write, Public limited read
     match /donations/{docId} {
+      allow read: if isAuth();
       allow get: if true;
       allow list: if request.query.limit <= 50;
       allow create, update, delete: if isAuth();

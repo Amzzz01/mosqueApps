@@ -170,7 +170,7 @@ export interface DashboardStats {
   recentActivities: number;
 }
 
-// Lecture Schedule Types (Jadual Kuliah)
+// Lecture Schedule Types (Jadual Kuliah) — legacy
 export interface Kuliah {
   id?: string;
   tajuk: string;
@@ -183,6 +183,36 @@ export interface Kuliah {
   aktif: boolean;
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
+}
+
+// Jadual Kuliah v2
+export interface JadualKuliah {
+  id?: string;
+  title: string;
+  day: string; // Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad
+  weekOfMonth: string[]; // ['Semua'] or ['Pertama','Kedua','Ketiga','Keempat']
+  timeType: 'fixed' | 'afterPrayer';
+  fixedTime?: string | null; // HH:MM format
+  prayerReference?: 'Subuh' | 'Zohor' | 'Asar' | 'Maghrib' | 'Isyak' | null;
+  minutesAfterPrayer?: number | null;
+  category: string; // reference to KategoriKuliah name
+  ustaz: string;
+  venue: string;
+  description?: string;
+  posterUrl?: string | null;
+  sequence: number;
+  isActive: boolean;
+  createdAt: Date | Timestamp;
+  updatedAt: Date | Timestamp;
+}
+
+export interface KategoriKuliah {
+  id?: string;
+  name: string;
+  color: string; // hex color e.g. '#10b981'
+  sequence: number;
+  isActive: boolean;
+  createdAt: Date | Timestamp;
 }
 
 // Activity Gallery Types (Galeri Aktiviti)

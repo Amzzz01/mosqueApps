@@ -8,7 +8,7 @@ import { UserRoundCog, Building2 } from 'lucide-react';
 const navLinks = [
   { href: '/', label: 'Utama' },
   { href: '/announcements', label: 'Pengumuman' },
-  { href: '/kuliah', label: 'Kuliah' },
+  { href: '/jadual-kuliah', label: 'Kuliah' },
   { href: '/galeri', label: 'Galeri' },
   { href: '/derma', label: 'Derma' },
 ];
