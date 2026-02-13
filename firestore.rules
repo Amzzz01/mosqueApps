@@ -65,9 +65,11 @@ service cloud.firestore {
       allow read, write: if isAuth();
     }
 
-    // Notifications - Admin read/write
+    // Notifications - Public can read, Auth can update readBy, Admin can write
     match /notifications/{docId} {
-      allow read, write: if isAuth();
+      allow read: if true;
+      allow create, delete: if isAuth();
+      allow update: if isAuth();
     }
 
     // Notification settings - Admin read/write

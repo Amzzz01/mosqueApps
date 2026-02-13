@@ -83,18 +83,25 @@ export async function sendNotification(data: {
   topic?: string;
   url?: string;
   createdBy: string;
-}): Promise<{ id: string; sent: number; failed: number }> {
-  // Save to Firestore first
+}): Promise<{ id: string; sent: number; failed: number; cleaned: number }> {
+  // Create single notification doc in Firestore (API will update this same doc)
   const notifRef = await addDoc(collection(db, 'notifications'), {
-    ...data,
+    title: data.title,
+    body: data.body,
+    recipientType: data.recipientType,
+    ...(data.recipientIds ? { recipientIds: [...new Set(data.recipientIds)] } : {}),
+    ...(data.topic ? { topic: data.topic } : {}),
+    url: data.url || '/',
+    createdBy: data.createdBy,
     status: 'pending',
+    readBy: [],
     sentCount: 0,
     failedCount: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  // Call API to send
+  // Call API to send — pass notifId so API updates this doc instead of creating a new one
   try {
     const res = await fetch('/api/notifications/send', {
       method: 'POST',
@@ -103,21 +110,16 @@ export async function sendNotification(data: {
         title: data.title,
         body: data.body,
         url: data.url || '/',
-        topic: data.topic,
+        ...(data.topic ? { topic: data.topic } : {}),
+        notifId: notifRef.id,
       }),
     });
 
     const result = await res.json();
 
     if (res.ok) {
-      await updateDoc(doc(db, 'notifications', notifRef.id), {
-        status: 'sent',
-        sentAt: serverTimestamp(),
-        sentCount: result.sent || 0,
-        failedCount: result.failed || 0,
-        updatedAt: serverTimestamp(),
-      });
-      return { id: notifRef.id, sent: result.sent || 0, failed: result.failed || 0 };
+      // API already updated the doc — just return the result
+      return { id: notifRef.id, sent: result.sent || 0, failed: result.failed || 0, cleaned: result.cleaned || 0 };
     } else {
       await updateDoc(doc(db, 'notifications', notifRef.id), {
         status: 'failed',
@@ -141,7 +143,7 @@ export async function sendToTopic(data: {
   topic: string;
   url?: string;
   createdBy: string;
-}): Promise<{ id: string; sent: number; failed: number }> {
+}): Promise<{ id: string; sent: number; failed: number; cleaned: number }> {
   return sendNotification({ ...data, recipientType: 'all' });
 }
 
@@ -161,6 +163,7 @@ export async function scheduleNotification(data: {
     url: data.url || '/',
     status: 'scheduled',
     scheduledFor: Timestamp.fromDate(data.scheduledFor),
+    readBy: [],
     sentCount: 0,
     failedCount: 0,
     createdBy: data.createdBy,

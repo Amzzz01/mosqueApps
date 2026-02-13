@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRoundCog, Building2 } from 'lucide-react';
+import NotificationBell from '@/components/NotificationBell';
 
 const navLinks = [
   { href: '/', label: 'Utama' },
@@ -80,8 +81,11 @@ export default function Navigation() {
             ))}
           </nav>
 
-          {/* Right side: Admin + Hamburger */}
-          <div className="flex items-center gap-2 lg:gap-3">
+          {/* Right side: Bell + Admin + Hamburger */}
+          <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
+            {/* Notification Bell */}
+            <NotificationBell />
+
             {/* Admin Login - Desktop */}
             <Link
               href="/admin/login"

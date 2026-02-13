@@ -1,12 +1,12 @@
 // app/admin/settings/notifications/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Bell, Send, History, Settings, Save, Trash2,
   Clock, Eye, AlertCircle, CheckCircle, XCircle, Loader2,
-  Calendar, Users, Search, Moon,
+  Calendar, Moon, ShieldCheck,
 } from 'lucide-react';
 import {
   NotificationSettings, NotificationData, DEFAULT_SETTINGS,
@@ -81,6 +81,12 @@ export default function NotificationsPage() {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsSaving, setSettingsSaving] = useState(false);
 
+  // ─── Cleanup State ───
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<{
+    totalScanned: number; valid: number; invalid: number; deleted: number;
+  } | null>(null);
+
   // ─── Send State ───
   const [sendTitle, setSendTitle] = useState('');
   const [sendBody, setSendBody] = useState('');
@@ -134,19 +140,57 @@ export default function NotificationsPage() {
     }
   };
 
+  // ─── Cleanup Handler ───
+  const handleCleanup = async () => {
+    if (!confirm('Imbas dan padam semua token notifikasi yang tidak sah?')) return;
+    setCleaning(true);
+    setCleanupResult(null);
+    try {
+      const res = await fetch('/api/notifications/cleanup');
+      const data = await res.json();
+      if (res.ok) {
+        setCleanupResult(data);
+        if (data.deleted > 0) {
+          toast.success(`Pembersihan selesai: ${data.deleted} token tidak sah dipadam daripada ${data.totalScanned} diimbas`);
+        } else {
+          toast.success(`Semua ${data.valid} token adalah sah. Tiada yang perlu dipadam.`);
+        }
+      } else {
+        toast.error(data.error || 'Gagal membersihkan token');
+      }
+    } catch {
+      toast.error('Gagal menghubungi pelayan');
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   // ─── Send Handlers ───
-  const handleSend = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSend = async () => {
+    console.log('Button clicked!');
+    console.log('[Send] Form state:', {
+      title: sendTitle,
+      message: sendBody,
+      recipientType,
+      selectedTopic: topic,
+      customLink: sendUrl,
+      isScheduled,
+      scheduledDateTime,
+    });
+
     if (!sendTitle.trim() || !sendBody.trim()) {
+      console.log('[Send] Validation failed: title or body empty');
       toast.error('Sila isi tajuk dan kandungan');
       return;
     }
 
     const uid = auth.currentUser?.uid || 'admin';
+    console.log('[Send] Auth uid:', uid);
     setSending(true);
 
     try {
       if (isScheduled && scheduledDateTime) {
+        console.log('[Send] Scheduling notification for:', scheduledDateTime);
         const id = await scheduleNotification({
           title: sendTitle.trim(),
           body: sendBody.trim(),
@@ -155,8 +199,10 @@ export default function NotificationsPage() {
           url: sendUrl.trim() || '/',
           createdBy: uid,
         });
+        console.log('[Send] Scheduled successfully, id:', id);
         toast.success(`Notifikasi dijadualkan (ID: ${id.slice(0, 6)}...)`);
       } else {
+        console.log('[Send] Sending notification now...');
         const result = await sendNotification({
           title: sendTitle.trim(),
           body: sendBody.trim(),
@@ -165,7 +211,12 @@ export default function NotificationsPage() {
           url: sendUrl.trim() || '/',
           createdBy: uid,
         });
-        toast.success(`Notifikasi dihantar kepada ${result.sent} peranti`);
+        console.log('[Send] Result:', result);
+        const parts: string[] = [];
+        parts.push(`${result.sent}/${result.sent + (result.failed || 0)} berjaya`);
+        if (result.failed > 0) parts.push(`${result.failed} gagal`);
+        if (result.cleaned > 0) parts.push(`${result.cleaned} token tidak sah dipadam`);
+        toast.success(`Notifikasi dihantar: ${parts.join(', ')}`, { duration: 5000 });
       }
 
       // Reset form
@@ -181,6 +232,7 @@ export default function NotificationsPage() {
       // Refresh stats
       getNotificationStats().then(setStats).catch(() => {});
     } catch (err) {
+      console.error('[Send] Error:', err);
       toast.error(err instanceof Error ? err.message : 'Gagal menghantar notifikasi');
     } finally {
       setSending(false);
@@ -472,6 +524,58 @@ export default function NotificationsPage() {
                 <Save className="w-5 h-5" />
                 {settingsSaving ? 'Menyimpan...' : 'Simpan Tetapan'}
               </button>
+
+              {/* Token Cleanup */}
+              <div className="bg-white rounded-lg shadow-sm border p-5 space-y-4">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  Pembersihan Token
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Imbas semua token FCM yang didaftarkan dan padam token yang tidak sah atau tamat tempoh.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCleanup}
+                  disabled={cleaning}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                >
+                  {cleaning ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                  {cleaning ? 'Mengimbas...' : 'Bersihkan Token Tidak Sah'}
+                </button>
+
+                {cleanupResult && (
+                  <div className="mt-3 bg-gray-50 rounded-lg p-4 space-y-2">
+                    <h4 className="text-sm font-medium text-gray-700">Keputusan Pembersihan</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        <span className="text-gray-600">Diimbas:</span>
+                        <span className="font-medium">{cleanupResult.totalScanned}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-gray-600">Sah:</span>
+                        <span className="font-medium text-green-600">{cleanupResult.valid}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-gray-600">Tidak sah:</span>
+                        <span className="font-medium text-red-600">{cleanupResult.invalid}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-gray-600">Dipadam:</span>
+                        <span className="font-medium text-amber-600">{cleanupResult.deleted}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -480,7 +584,7 @@ export default function NotificationsPage() {
       {/* ═══════════════ SEND TAB ═══════════════ */}
       {activeTab === 'send' && (
         <div className="grid lg:grid-cols-5 gap-6">
-          <form onSubmit={handleSend} className="lg:col-span-3 space-y-5">
+          <div className="lg:col-span-3 space-y-5">
             <div className="bg-white rounded-lg shadow-sm border p-5 space-y-5">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-600" />
@@ -602,8 +706,9 @@ export default function NotificationsPage() {
                   {showPreview ? 'Tutup Pratonton' : 'Pratonton'}
                 </button>
                 <button
-                  type="submit"
-                  disabled={sending || !sendTitle.trim() || !sendBody.trim()}
+                  type="button"
+                  onClick={handleSend}
+                  disabled={sending}
                   className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 text-sm"
                 >
                   {sending ? (
@@ -615,7 +720,7 @@ export default function NotificationsPage() {
                 </button>
               </div>
             </div>
-          </form>
+          </div>
 
           {/* Preview Panel */}
           <div className="lg:col-span-2">

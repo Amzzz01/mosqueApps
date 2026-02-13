@@ -87,6 +87,11 @@ export default function PublicLayout({
                   </Link>
                 </li>
                 <li>
+                  <Link href="/notifikasi" className="text-gray-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-2">
+                    Notifikasi
+                  </Link>
+                </li>
+                <li>
                   <Link href="/contact" className="text-gray-400 hover:text-emerald-400 transition-colors inline-flex items-center gap-2">
                     Hubungi Kami
                   </Link>

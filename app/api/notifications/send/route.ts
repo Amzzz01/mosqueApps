@@ -3,9 +3,19 @@ import { NextResponse } from 'next/server';
 import { getAdminMessaging, getAdminFirestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
+interface TokenError {
+  token: string;
+  code: string;
+  message: string;
+  source: string;
+  cleaned: boolean;
+}
+
 export async function POST(request: Request) {
   try {
-    const { title, body, recipientType, topic, url } = await request.json();
+    const reqBody = await request.json();
+    const { title, body, recipientType, topic, url, notifId } = reqBody;
+    console.log('[API/notifications] Request received:', JSON.stringify(reqBody));
 
     if (!title || !body) {
       return NextResponse.json(
@@ -18,76 +28,108 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // Common notification payload
     const notification = { title, body };
     const webpush = {
-      notification: {
-        icon: '/icons/icon-192x192.png',
-      },
+      notification: { icon: '/icons/icon-192x192.png' },
       fcmOptions: { link },
     };
 
     let sentCount = 0;
     let failedCount = 0;
     let recipientCount = 0;
+    let cleanedCount = 0;
+    const errors: TokenError[] = [];
 
     // ─── Send to topic ───
     if (recipientType === 'topic' && topic) {
+      console.log('[FCM] Sending to topic:', topic);
       try {
-        await messaging.send({
-          topic,
-          notification,
-          webpush,
-        });
+        const topicResponse = await messaging.send({ topic, notification, webpush });
+        console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
       } catch (err) {
         console.error('[FCM] sendToTopic failed:', err);
         failedCount = 1;
+        errors.push({
+          token: `topic:${topic}`,
+          code: err instanceof Error ? err.message : 'unknown',
+          message: err instanceof Error ? err.message : 'Topic send failed',
+          source: 'topic',
+          cleaned: false,
+        });
       }
     } else {
-      // ─── Send to all tokens (recipientType: all, members, sponsors, donors) ───
+      // ─── Collect and deduplicate tokens ───
+      console.log('[FCM] Querying fcmTokens from Firestore...');
       const tokensSnap = await db.collectionGroup('fcmTokens').get();
 
-      const tokens: string[] = [];
-      tokensSnap.forEach((doc) => {
-        const token = doc.data().token;
-        if (token && !tokens.includes(token)) tokens.push(token);
+      const tokenSet = new Set<string>();
+      const tokenSources: Record<string, string> = {};
+      const tokenRefs: Record<string, FirebaseFirestore.DocumentReference> = {};
+      const duplicateRefs: FirebaseFirestore.DocumentReference[] = [];
+
+      tokensSnap.forEach((docSnap) => {
+        const token = docSnap.data().token;
+        const path = docSnap.ref.path;
+        if (!token) {
+          console.warn(`[FCM]   EMPTY token in ${path} — queued for delete`);
+          duplicateRefs.push(docSnap.ref);
+          return;
+        }
+        if (tokenSet.has(token)) {
+          console.log(`[FCM]   DUPLICATE token from ${path} — queued for delete`);
+          duplicateRefs.push(docSnap.ref);
+          return;
+        }
+        tokenSet.add(token);
+        tokenSources[token] = path;
+        tokenRefs[token] = docSnap.ref;
+        console.log(`[FCM]   token from ${path}`);
       });
 
+      // Clean up empty/duplicate token docs
+      if (duplicateRefs.length > 0) {
+        console.log(`[FCM] Cleaning ${duplicateRefs.length} empty/duplicate token docs...`);
+        for (const ref of duplicateRefs) {
+          ref.delete().catch(() => {});
+        }
+      }
+
+      const tokens = Array.from(tokenSet);
+      console.log(`[FCM] ${tokens.length} unique tokens (from ${tokensSnap.size} docs, ${duplicateRefs.length} duplicates removed)`);
       recipientCount = tokens.length;
 
       if (tokens.length === 0) {
-        // Save record even if no tokens
-        await db.collection('notifications').add({
-          title,
-          body,
-          recipientType: recipientType || 'all',
-          topic: topic || null,
-          link,
-          status: 'sent',
-          sentAt: FieldValue.serverTimestamp(),
-          recipientCount: 0,
-          sentCount: 0,
-          failedCount: 0,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        // Update existing doc if notifId provided, otherwise create new
+        if (notifId) {
+          await db.collection('notifications').doc(notifId).update({
+            status: 'sent',
+            sentAt: FieldValue.serverTimestamp(),
+            recipientCount: 0,
+            sentCount: 0,
+            failedCount: 0,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
 
         return NextResponse.json({
           success: true,
           sent: 0,
           failed: 0,
+          cleaned: duplicateRefs.length,
           total: 0,
+          errors: [],
           message: 'Tiada peranti berdaftar',
         });
       }
 
-      // Send in batches of 500 (FCM limit)
+      // ─── Send in batches of 500 ───
       const batchSize = 500;
-      const staleTokens: string[] = [];
-
       for (let i = 0; i < tokens.length; i += batchSize) {
         const batch = tokens.slice(i, i + batchSize);
+        const batchNum = Math.floor(i / batchSize) + 1;
+        console.log(`[FCM] Sending batch ${batchNum} (${batch.length} tokens)`);
 
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
@@ -95,81 +137,97 @@ export async function POST(request: Request) {
           webpush,
         });
 
+        console.log(`[FCM] Batch ${batchNum}: success=${response.successCount}, failure=${response.failureCount}`);
         sentCount += response.successCount;
         failedCount += response.failureCount;
 
-        // Collect stale/invalid tokens for cleanup
-        response.responses.forEach((resp, idx) => {
-          if (
-            resp.error &&
-            (resp.error.code === 'messaging/registration-token-not-registered' ||
-              resp.error.code === 'messaging/invalid-registration-token')
-          ) {
-            staleTokens.push(batch[idx]);
-          }
-        });
-      }
+        for (let idx = 0; idx < response.responses.length; idx++) {
+          const resp = response.responses[idx];
+          const tokenVal = batch[idx];
+          const source = tokenSources[tokenVal] || 'unknown';
 
-      // Clean up stale tokens in background
-      if (staleTokens.length > 0) {
-        cleanupStaleTokens(db, staleTokens).catch((err) =>
-          console.error('[FCM] Stale token cleanup error:', err)
-        );
+          if (resp.error) {
+            const errorCode = resp.error.code || 'unknown';
+            const errorMsg = resp.error.message || 'Unknown error';
+            console.error(`[FCM]   FAILED token[${i + idx}] code=${errorCode} source=${source}`);
+
+            const isInvalid =
+              errorCode === 'messaging/registration-token-not-registered' ||
+              errorCode === 'messaging/invalid-registration-token' ||
+              errorCode === 'messaging/invalid-argument';
+
+            let cleaned = false;
+            if (isInvalid && tokenRefs[tokenVal]) {
+              try {
+                await tokenRefs[tokenVal].delete();
+                cleaned = true;
+                cleanedCount++;
+                console.log(`[FCM]     DELETED invalid token: ${source}`);
+              } catch (delErr) {
+                console.error(`[FCM]     Delete failed: ${delErr}`);
+              }
+            }
+
+            errors.push({
+              token: tokenVal.slice(0, 20) + '...' + tokenVal.slice(-10),
+              code: errorCode,
+              message: errorMsg,
+              source,
+              cleaned,
+            });
+          } else {
+            console.log(`[FCM]   OK token[${i + idx}] (${source})`);
+          }
+        }
       }
     }
 
-    // ─── Save notification record ───
-    const notifRecord = await db.collection('notifications').add({
-      title,
-      body,
-      recipientType: recipientType || 'all',
-      topic: topic || null,
-      link,
-      status: failedCount > 0 && sentCount === 0 ? 'failed' : 'sent',
+    // ─── Save/update notification record (single write) ───
+    const status = sentCount > 0 ? 'sent' : failedCount > 0 ? 'failed' : 'sent';
+    console.log(`[API/notifications] Final: sent=${sentCount}, failed=${failedCount}, cleaned=${cleanedCount}, total=${recipientCount}`);
+
+    const updateData = {
+      status,
       sentAt: FieldValue.serverTimestamp(),
       recipientCount,
       sentCount,
       failedCount,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+      cleanedCount,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    let recordId = notifId;
+
+    if (notifId) {
+      // Update existing doc created by the client
+      await db.collection('notifications').doc(notifId).update(updateData);
+    } else {
+      // No existing doc — create one (direct API call without client)
+      const newDoc = await db.collection('notifications').add({
+        title,
+        body,
+        recipientType: recipientType || 'all',
+        ...(topic ? { topic } : {}),
+        link,
+        readBy: [],
+        ...updateData,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      recordId = newDoc.id;
+    }
 
     return NextResponse.json({
       success: true,
-      id: notifRecord.id,
+      id: recordId,
       sent: sentCount,
       failed: failedCount,
+      cleaned: cleanedCount,
       total: recipientCount,
+      errors,
     });
   } catch (err) {
     console.error('[API/notifications] Error:', err);
-
-    const message =
-      err instanceof Error ? err.message : 'Gagal menghantar notifikasi';
-
+    const message = err instanceof Error ? err.message : 'Gagal menghantar notifikasi';
     return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
-
-/**
- * Remove stale FCM tokens from Firestore.
- */
-async function cleanupStaleTokens(
-  db: FirebaseFirestore.Firestore,
-  staleTokens: string[]
-) {
-  const snap = await db.collectionGroup('fcmTokens').get();
-  const batch = db.batch();
-  let count = 0;
-
-  snap.forEach((doc) => {
-    if (staleTokens.includes(doc.data().token)) {
-      batch.delete(doc.ref);
-      count++;
-    }
-  });
-
-  if (count > 0) {
-    await batch.commit();
-    console.log(`[FCM] Cleaned up ${count} stale tokens`);
   }
 }

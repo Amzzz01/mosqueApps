@@ -8,6 +8,8 @@ import { auth } from '@/lib/firebase/config';
 import {
   requestNotificationPermission,
   saveFCMToken,
+  refreshFCMToken,
+  getPermissionStatus,
   onMessageListener,
 } from '@/lib/firebase-messaging';
 import toast from 'react-hot-toast';
@@ -39,12 +41,17 @@ export default function NotificationPermission() {
     return () => unsubAuth();
   }, []);
 
-  // Auto-request if user is authenticated and permission already granted
+  // Auto-register token if user is authenticated and permission already granted
   useEffect(() => {
     if (!user || !supported || permissionState !== 'granted') return;
 
-    requestNotificationPermission().then((token) => {
-      if (token) saveFCMToken(user.uid, token);
+    console.log('[NotifPermission] Permission granted + user logged in — refreshing FCM token...');
+    refreshFCMToken(user.uid).then((token) => {
+      if (token) {
+        console.log('[NotifPermission] Fresh token registered successfully');
+      } else {
+        console.warn('[NotifPermission] Failed to get fresh token — try checking browser settings');
+      }
     });
   }, [user, supported, permissionState]);
 
