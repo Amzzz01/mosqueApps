@@ -17,7 +17,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   BookOpen,
-  ImageIcon
+  ImageIcon,
+  Bell
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -254,6 +255,17 @@ export default function AdminSidebar({
           >
             <MessageSquare className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Pengumuman</span>
+          </Link>
+
+          {/* Notifikasi */}
+          <Link
+            href="/admin/settings/notifications"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/settings/notifications') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Notifikasi' : undefined}
+          >
+            <Bell className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Notifikasi</span>
           </Link>
 
           {/* Log Keluar */}

@@ -223,15 +223,14 @@ export default function JadualKuliahPublicPage() {
                     className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200 hover:-translate-y-1"
                   >
                     {item.posterUrl ? (
-                      <div className="relative aspect-video w-full">
-                        <Image
-                          src={item.posterUrl}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      </div>
+                      <Image
+                        src={item.posterUrl}
+                        alt={item.title}
+                        width={800}
+                        height={600}
+                        className="w-full h-auto"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
                     ) : (
                       <div className="h-1.5" style={{ backgroundColor: getKategoriColor(item.category) }} />
                     )}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import NotificationPermission from '@/components/NotificationPermission';
 import { Building2, Phone, MapPin, Mail, Clock, MessageSquare } from 'lucide-react';
 
 export default function PublicLayout({
@@ -19,6 +20,9 @@ export default function PublicLayout({
       <main className="flex-grow">
         {children}
       </main>
+
+      {/* FCM Notification */}
+      <NotificationPermission />
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white mt-auto">

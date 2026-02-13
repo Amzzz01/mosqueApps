@@ -65,6 +65,25 @@ service cloud.firestore {
       allow read, write: if isAuth();
     }
 
+    // Notifications - Admin read/write
+    match /notifications/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // Notification settings - Admin read/write
+    match /settings/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // FCM tokens - users can write their own tokens
+    match /users/{userId}/fcmTokens/{tokenId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+      allow create, update: if isAuth()
+        && request.auth.uid == userId
+        && request.resource.data.token is string
+        && request.resource.data.createdAt is timestamp;
+    }
+
     // Deny all other collections
     match /{document=**} {
       allow read, write: if false;
