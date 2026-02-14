@@ -1,8 +1,10 @@
 // public/firebase-messaging-sw.js
-// Firebase Cloud Messaging background message handler
+// Standalone fallback — main FCM handling is in worker/index.js (merged into sw.js)
 
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+console.log('[FCM-SW] Firebase messaging SW loaded');
 
 firebase.initializeApp({
   apiKey: 'AIzaSyA1tqrXxikBdRbzz1wFIjiPkD9E9Qwomd8',
@@ -13,33 +15,46 @@ firebase.initializeApp({
   appId: '1:459715855904:web:c86195995c76c9e64a9e45',
 });
 
+console.log('[FCM-SW] Firebase initialized');
+
 const messaging = firebase.messaging();
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'Masjid Al-Falah';
+messaging.setBackgroundMessageHandler((payload) => {
+  console.log('[FCM-SW] Background message received:', JSON.stringify(payload));
+
+  const data = payload.data || {};
+  const title = data.title || payload.notification?.title || 'Masjid Al-Falah';
+  const body = data.body || payload.notification?.body || '';
+  const link = data.link || data.url || '/';
+  const notifId = data.notifId || '';
+
+  console.log('[FCM-SW] Showing notification:', { title, body, link, notifId });
+
   const options = {
-    body: payload.notification?.body || '',
+    body,
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
-    data: payload.data || {},
-    tag: payload.data?.notifId || 'masjid-notification',
+    data: { url: link, link, notifId },
+    tag: notifId || 'masjid-notification',
     requireInteraction: false,
     vibrate: [200, 100, 200],
   };
 
-  self.registration.showNotification(title, options);
+  return self.registration.showNotification(title, options);
 });
 
-// Handle notification click
 self.addEventListener('notificationclick', (event) => {
+  console.log('[FCM-SW] Notification clicked:', event.notification.tag);
   event.notification.close();
 
-  const link = event.notification.data?.link || event.notification.data?.url || '/';
+  const data = event.notification.data || {};
+  const link = data.link || data.url || '/';
   const urlToOpen = new URL(link, self.location.origin).href;
+  console.log('[FCM-SW] Opening URL:', urlToOpen);
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      console.log('[FCM-SW] Found', clients.length, 'open client(s)');
       for (const client of clients) {
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();

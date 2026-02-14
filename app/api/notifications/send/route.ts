@@ -28,11 +28,33 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
+    // BOTH notification and data payloads:
+    // - notification: browser auto-display fallback
+    // - data: all strings, used by setBackgroundMessageHandler in SW
     const notification = { title, body };
-    const webpush = {
-      notification: { icon: '/icons/icon-192x192.png' },
-      fcmOptions: { link },
+    const data: Record<string, string> = {
+      title,
+      body,
+      link,
+      notifId: notifId || '',
     };
+    const webpush = {
+      notification: {
+        title,
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+      },
+      fcmOptions: { link },
+      data,
+    };
+    const android = {
+      data,
+      notification: { clickAction: 'FLUTTER_NOTIFICATION_CLICK' },
+    };
+
+    console.log('[FCM] Message payload — notification:', JSON.stringify(notification));
+    console.log('[FCM] Message payload — data:', JSON.stringify(data));
 
     let sentCount = 0;
     let failedCount = 0;
@@ -44,7 +66,7 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ topic, notification, webpush });
+        const topicResponse = await messaging.send({ topic, notification, data, webpush, android });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
@@ -134,7 +156,9 @@ export async function POST(request: Request) {
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
           notification,
+          data,
           webpush,
+          android,
         });
 
         console.log(`[FCM] Batch ${batchNum}: success=${response.successCount}, failure=${response.failureCount}`);
