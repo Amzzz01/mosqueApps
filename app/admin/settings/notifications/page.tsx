@@ -6,8 +6,9 @@ import Link from 'next/link';
 import {
   ArrowLeft, Bell, Send, History, Settings, Save, Trash2,
   Clock, Eye, AlertCircle, CheckCircle, XCircle, Loader2,
-  Calendar, Moon, ShieldCheck,
+  Calendar, Moon, ShieldCheck, Bug, Smartphone,
 } from 'lucide-react';
+import { testNotificationPermissions, sendTestNotification } from '@/lib/notification-debug';
 import {
   NotificationSettings, NotificationData, DEFAULT_SETTINGS,
   getNotificationSettings, saveNotificationSettings,
@@ -87,6 +88,17 @@ export default function NotificationsPage() {
     totalScanned: number; valid: number; invalid: number; deleted: number;
   } | null>(null);
 
+  // ─── Debug State ───
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    supported: boolean;
+    permission: NotificationPermission | 'unsupported';
+    serviceWorkerReady: boolean;
+    pushManagerAvailable: boolean;
+    details: string[];
+  } | null>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
+
   // ─── Send State ───
   const [sendTitle, setSendTitle] = useState('');
   const [sendBody, setSendBody] = useState('');
@@ -162,6 +174,29 @@ export default function NotificationsPage() {
       toast.error('Gagal menghubungi pelayan');
     } finally {
       setCleaning(false);
+    }
+  };
+
+  // ─── Debug Handlers ───
+  const handleDebug = async () => {
+    setDebugLoading(true);
+    try {
+      const info = await testNotificationPermissions();
+      setDebugInfo(info);
+      setShowDebug(true);
+    } catch {
+      toast.error('Gagal menjalankan diagnostik');
+    } finally {
+      setDebugLoading(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    const success = await sendTestNotification();
+    if (success) {
+      toast.success('Notifikasi ujian berjaya dihantar');
+    } else {
+      toast.error('Gagal menghantar notifikasi ujian. Semak kebenaran notifikasi.');
     }
   };
 
@@ -571,6 +606,100 @@ export default function NotificationsPage() {
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
                         <span className="text-gray-600">Dipadam:</span>
                         <span className="font-medium text-amber-600">{cleanupResult.deleted}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Debug Panel */}
+              <div className="bg-white rounded-lg shadow-sm border p-5 space-y-4">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Bug className="w-5 h-5 text-emerald-600" />
+                  Diagnostik Notifikasi
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Semak status kebenaran notifikasi, Service Worker, dan Push Manager pada peranti ini.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDebug}
+                    disabled={debugLoading}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  >
+                    {debugLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Bug className="w-5 h-5" />
+                    )}
+                    {debugLoading ? 'Menyemak...' : 'Jalankan Diagnostik'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTestNotification}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Smartphone className="w-5 h-5" />
+                    Hantar Notifikasi Ujian
+                  </button>
+                </div>
+
+                {showDebug && debugInfo && (
+                  <div className="mt-3 bg-gray-50 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700">Keputusan Diagnostik</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        {debugInfo.supported ? (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-gray-600">Notifikasi Disokong:</span>
+                        <span className={`font-medium ${debugInfo.supported ? 'text-green-600' : 'text-red-600'}`}>
+                          {debugInfo.supported ? 'Ya' : 'Tidak'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {debugInfo.permission === 'granted' ? (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-gray-600">Kebenaran:</span>
+                        <span className={`font-medium ${debugInfo.permission === 'granted' ? 'text-green-600' : 'text-red-600'}`}>
+                          {debugInfo.permission}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {debugInfo.serviceWorkerReady ? (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-gray-600">Service Worker:</span>
+                        <span className={`font-medium ${debugInfo.serviceWorkerReady ? 'text-green-600' : 'text-red-600'}`}>
+                          {debugInfo.serviceWorkerReady ? 'Aktif' : 'Tidak Aktif'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {debugInfo.pushManagerAvailable ? (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className="text-gray-600">Push Manager:</span>
+                        <span className={`font-medium ${debugInfo.pushManagerAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                          {debugInfo.pushManagerAvailable ? 'Tersedia' : 'Tidak Tersedia'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 border-t pt-3">
+                      <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Butiran Penuh</h5>
+                      <div className="bg-gray-900 text-gray-100 rounded-lg p-3 text-xs font-mono space-y-0.5 max-h-48 overflow-y-auto">
+                        {debugInfo.details.map((line, i) => (
+                          <div key={i}>{line}</div>
+                        ))}
                       </div>
                     </div>
                   </div>

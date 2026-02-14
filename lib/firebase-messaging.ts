@@ -64,9 +64,19 @@ export async function requestNotificationPermission(): Promise<string | null> {
     const swRegistration = await navigator.serviceWorker.register('/sw.js');
     console.log('[FCM] Service worker registered:', swRegistration.scope);
 
-    // Wait for SW to be ready
-    await navigator.serviceWorker.ready;
+    // Wait for SW to be ready and active
+    const registration = await navigator.serviceWorker.ready;
     console.log('[FCM] Service worker is ready');
+
+    // Ensure SW is actually active before proceeding
+    if (!registration.active) {
+      console.error('[FCM] Service worker is not active yet');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!registration.active) {
+        throw new Error('Service worker failed to activate');
+      }
+    }
+    console.log('[FCM] Service worker is active');
 
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     console.log('[FCM] VAPID key present:', !!vapidKey, vapidKey ? `(${vapidKey.slice(0, 10)}...)` : '');

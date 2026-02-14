@@ -12,7 +12,8 @@
       "Bash(firebase deploy:*)",
       "Bash(npm run build:*)",
       "Bash(powershell -Command \"\\(Get-Content C:\\\\MyMasjidApp\\\\public\\\\sw.js -Raw\\) -match ''firebase-app-compat''\")",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(git add:*)"
     ]
   }
 }
