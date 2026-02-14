@@ -22,11 +22,15 @@ try {
 const messaging = firebase.messaging();
 console.log('[SW] Firebase messaging instance ready');
 
+// Track whether onBackgroundMessage handled the push, so the raw push
+// listener below can act as a fallback without showing duplicates.
+let bgMessageHandled = false;
+
 // Handle background messages — onBackgroundMessage is the correct API for compat SDK v10+
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] onBackgroundMessage fired:', JSON.stringify(payload));
+  bgMessageHandled = true;
 
-  // Read from data payload first (strings), fallback to notification payload
   const data = payload.data || {};
   const notif = payload.notification || {};
   const title = data.title || notif.title || 'Masjid Al-Falah';
@@ -36,7 +40,6 @@ messaging.onBackgroundMessage((payload) => {
 
   console.log('[SW] Showing notification:', title, body, link);
 
-  // Mobile-optimized notification options
   const options = {
     body,
     icon: '/icons/icon-192x192.png',
@@ -51,6 +54,54 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   return self.registration.showNotification(title, options);
+});
+
+// Fallback push listener — catches messages that onBackgroundMessage misses
+// (common on Android PWA where Firebase compat SDK may not intercept the push)
+self.addEventListener('push', (event) => {
+  // Reset the flag — give onBackgroundMessage a moment to claim it
+  bgMessageHandled = false;
+
+  const handlePush = async () => {
+    // Small delay to let onBackgroundMessage fire first if it will
+    await new Promise((r) => setTimeout(r, 200));
+    if (bgMessageHandled) {
+      console.log('[SW] push event — already handled by onBackgroundMessage, skipping');
+      return;
+    }
+
+    console.log('[SW] push event — fallback handler firing');
+    let data = {};
+    try {
+      const json = event.data && event.data.json();
+      // FCM wraps data in .data for data-only messages
+      data = (json && json.data) || json || {};
+    } catch (e) {
+      console.warn('[SW] push event — could not parse payload:', e);
+    }
+
+    const title = data.title || 'Masjid Al-Falah';
+    const body = data.body || '';
+    const link = data.link || data.url || '/';
+    const notifId = data.notifId || '';
+
+    const options = {
+      body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
+      data: { url: link, link, notifId },
+      tag: notifId || 'masjid-notification-fallback',
+      requireInteraction: false,
+      vibrate: [200, 100, 200],
+      silent: false,
+      renotify: true,
+      timestamp: Date.now(),
+    };
+
+    return self.registration.showNotification(title, options);
+  };
+
+  event.waitUntil(handlePush());
 });
 
 // Handle notification click — open app and navigate to URL
