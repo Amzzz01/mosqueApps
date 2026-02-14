@@ -1,11 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Building2, Menu, X, Clock, MessageSquare, Phone, UserRoundCog } from 'lucide-react';
+import { Building2, Menu, X, Clock, MessageSquare, Phone, UserRoundCog, Download } from 'lucide-react';
 
 export default function PublicNav() {
   const [isOpen, setIsOpen] = useState(false);
+
+  // PWA install prompt
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed as PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      return;
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    const installedHandler = () => setIsInstalled(true);
+    window.addEventListener('appinstalled', installedHandler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (deferredPrompt as any).prompt();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { outcome } = await (deferredPrompt as any).userChoice;
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
+    }
+    setDeferredPrompt(null);
+  };
 
   // 1. Removed Admin Login from here to manage it separately
   const navLinks = [
@@ -78,6 +116,17 @@ export default function PublicNav() {
                 <span>{link.label}</span>
               </Link>
             ))}
+
+            {/* Install App Button — only shown when not already installed */}
+            {!isInstalled && (
+              <button
+                onClick={() => { handleInstall(); setIsOpen(false); }}
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg w-full text-left bg-white/10 hover:bg-emerald-700 transition-colors"
+              >
+                <Download className="h-5 w-5" />
+                <span>Muat Turun Aplikasi</span>
+              </button>
+            )}
           </div>
         )}
       </div>
