@@ -28,9 +28,8 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // BOTH notification and data payloads:
-    // - notification: browser auto-display fallback
-    // - data: all strings, used by setBackgroundMessageHandler in SW
+    // notification: browser auto-display (foreground toast + background system notif)
+    // data: all string values, read by SW onBackgroundMessage and foreground onMessage
     const notification = { title, body };
     const data: Record<string, string> = {
       title,
@@ -39,22 +38,12 @@ export async function POST(request: Request) {
       notifId: notifId || '',
     };
     const webpush = {
-      notification: {
-        title,
-        body,
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-192x192.png',
-      },
+      notification: { icon: '/icons/icon-192x192.png' },
       fcmOptions: { link },
-      data,
-    };
-    const android = {
-      data,
-      notification: { clickAction: 'FLUTTER_NOTIFICATION_CLICK' },
     };
 
-    console.log('[FCM] Message payload — notification:', JSON.stringify(notification));
-    console.log('[FCM] Message payload — data:', JSON.stringify(data));
+    console.log('[FCM] Payload — notification:', JSON.stringify(notification));
+    console.log('[FCM] Payload — data:', JSON.stringify(data));
 
     let sentCount = 0;
     let failedCount = 0;
@@ -66,7 +55,7 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ topic, notification, data, webpush, android });
+        const topicResponse = await messaging.send({ topic, notification, data, webpush });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
@@ -158,7 +147,6 @@ export async function POST(request: Request) {
           notification,
           data,
           webpush,
-          android,
         });
 
         console.log(`[FCM] Batch ${batchNum}: success=${response.successCount}, failure=${response.failureCount}`);

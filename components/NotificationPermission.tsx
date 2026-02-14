@@ -60,11 +60,12 @@ export default function NotificationPermission() {
     if (!supported || permissionState !== 'granted') return;
 
     const unsubscribe = onMessageListener((payload: unknown) => {
-      const data = payload as {
+      const msg = payload as {
         notification?: { title?: string; body?: string };
+        data?: { title?: string; body?: string; link?: string };
       };
-      const title = data?.notification?.title || 'Notifikasi Baru';
-      const body = data?.notification?.body || '';
+      const title = msg?.data?.title || msg?.notification?.title || 'Notifikasi Baru';
+      const body = msg?.data?.body || msg?.notification?.body || '';
 
       toast(
         (t) => (

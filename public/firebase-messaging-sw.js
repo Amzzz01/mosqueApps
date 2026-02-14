@@ -1,36 +1,40 @@
 // public/firebase-messaging-sw.js
-// Standalone fallback — main FCM handling is in worker/index.js (merged into sw.js)
+// Standalone FCM service worker fallback
 
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-console.log('[FCM-SW] Firebase messaging SW loaded');
+console.log('[FCM-SW] Loading...');
 
-firebase.initializeApp({
-  apiKey: 'AIzaSyA1tqrXxikBdRbzz1wFIjiPkD9E9Qwomd8',
-  authDomain: 'mymosqueapps.firebaseapp.com',
-  projectId: 'mymosqueapps',
-  storageBucket: 'mymosqueapps.firebasestorage.app',
-  messagingSenderId: '459715855904',
-  appId: '1:459715855904:web:c86195995c76c9e64a9e45',
-});
-
-console.log('[FCM-SW] Firebase initialized');
+try {
+  firebase.initializeApp({
+    apiKey: 'AIzaSyA1tqrXxikBdRbzz1wFIjiPkD9E9Qwomd8',
+    authDomain: 'mymosqueapps.firebaseapp.com',
+    projectId: 'mymosqueapps',
+    storageBucket: 'mymosqueapps.firebasestorage.app',
+    messagingSenderId: '459715855904',
+    appId: '1:459715855904:web:c86195995c76c9e64a9e45',
+  });
+  console.log('[FCM-SW] Firebase initialized OK');
+} catch (e) {
+  console.log('[FCM-SW] Firebase already initialized or error:', e.message);
+}
 
 const messaging = firebase.messaging();
 
-messaging.setBackgroundMessageHandler((payload) => {
-  console.log('[FCM-SW] Background message received:', JSON.stringify(payload));
+messaging.onBackgroundMessage((payload) => {
+  console.log('[FCM-SW] onBackgroundMessage fired:', JSON.stringify(payload));
 
   const data = payload.data || {};
-  const title = data.title || payload.notification?.title || 'Masjid Al-Falah';
-  const body = data.body || payload.notification?.body || '';
+  const notif = payload.notification || {};
+  const title = data.title || notif.title || 'Masjid Al-Falah';
+  const body = data.body || notif.body || '';
   const link = data.link || data.url || '/';
   const notifId = data.notifId || '';
 
-  console.log('[FCM-SW] Showing notification:', { title, body, link, notifId });
+  console.log('[FCM-SW] Showing notification:', title, body, link);
 
-  const options = {
+  return self.registration.showNotification(title, {
     body,
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
@@ -38,9 +42,7 @@ messaging.setBackgroundMessageHandler((payload) => {
     tag: notifId || 'masjid-notification',
     requireInteraction: false,
     vibrate: [200, 100, 200],
-  };
-
-  return self.registration.showNotification(title, options);
+  });
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -50,15 +52,11 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification.data || {};
   const link = data.link || data.url || '/';
   const urlToOpen = new URL(link, self.location.origin).href;
-  console.log('[FCM-SW] Opening URL:', urlToOpen);
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      console.log('[FCM-SW] Found', clients.length, 'open client(s)');
       for (const client of clients) {
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
-        }
+        if (client.url === urlToOpen && 'focus' in client) return client.focus();
       }
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && 'navigate' in client) {
@@ -69,3 +67,5 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+console.log('[FCM-SW] All handlers registered OK');
