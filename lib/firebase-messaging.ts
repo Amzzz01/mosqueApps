@@ -59,11 +59,9 @@ export async function requestNotificationPermission(): Promise<string | null> {
   }
 
   try {
-    // Register the FCM service worker
+    // Use the main PWA service worker (which includes Firebase messaging via worker/index.js)
     console.log('[FCM] Registering service worker...');
-    const swRegistration = await navigator.serviceWorker.register(
-      '/firebase-messaging-sw.js'
-    );
+    const swRegistration = await navigator.serviceWorker.register('/sw.js');
     console.log('[FCM] Service worker registered:', swRegistration.scope);
 
     // Wait for SW to be ready
