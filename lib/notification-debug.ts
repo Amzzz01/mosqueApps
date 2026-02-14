@@ -38,28 +38,24 @@ export async function testNotificationPermissions(): Promise<{
   let serviceWorkerReady = false;
   if (swSupported) {
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
-      serviceWorkerReady = !!reg && !!reg.active;
+      const registration = await navigator.serviceWorker.getRegistration();
+      serviceWorkerReady = !!registration && !!registration.active;
       details.push(`SW Ready: ${serviceWorkerReady ? '✓' : '✗'}`);
-      if (reg) {
-        details.push(`SW Scope: ${reg.scope}`);
-        details.push(`SW Active: ${reg.active ? '✓' : '✗'}`);
-        details.push(`SW Installing: ${reg.installing ? '✓' : '✗'}`);
-        details.push(`SW Waiting: ${reg.waiting ? '✓' : '✗'}`);
+      if (registration) {
+        details.push(`SW Scope: ${registration.scope}`);
+        details.push(`SW State: ${registration.active?.state || 'none'}`);
       }
     } catch (err) {
-      details.push(`SW Check Error: ${err}`);
+      details.push(`SW Error: ${err}`);
     }
   }
 
-  details.push(`User Agent: ${navigator.userAgent}`);
-
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  details.push(`Mobile Device: ${isMobile ? '✓' : '✗'}`);
+  details.push(`Mobile: ${isMobile ? '✓' : '✗'}`);
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   if (isIOS) {
-    details.push('⚠️ iOS has limited PWA notification support');
+    details.push('⚠️ iOS: Limited PWA notification support');
   }
 
   return {
@@ -78,33 +74,31 @@ export async function sendTestNotification(): Promise<boolean> {
   }
 
   if (Notification.permission !== 'granted') {
-    console.error('[Test] Notification permission not granted');
+    console.error('[Test] Permission not granted');
     return false;
   }
 
   try {
-    const reg = await navigator.serviceWorker.ready;
-    if (!reg.active) {
-      console.error('[Test] Service worker not active');
-      return false;
-    }
+    const registration = await navigator.serviceWorker.ready;
 
-    // FIXED: Cast the options to 'any' or use NotificationOptions to bypass strict vibrate checks
-    await reg.showNotification('Test Notification', {
-      body: 'This is a test notification from MyMasjidApp',
+    await registration.showNotification('MASJID AL-FALAH', {
+      body: 'Ini adalah notifikasi ujian. Jika anda melihat ini, notifikasi berfungsi dengan baik!',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
       tag: 'test-notification',
       vibrate: [200, 100, 200],
       requireInteraction: false,
+      silent: false,
       timestamp: Date.now(),
       data: { url: '/', test: true },
+      dir: 'ltr',
+      lang: 'ms-MY',
     } as NotificationOptions);
 
-    console.log('[Test] Test notification sent successfully');
+    console.log('[Test] Test notification sent');
     return true;
   } catch (err) {
-    console.error('[Test] Failed to send test notification:', err);
+    console.error('[Test] Failed:', err);
     return false;
   }
 }

@@ -40,6 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 
   console.log('[SW] Showing notification:', title, body, link);
 
+  // iOS/Android native-style notification options
   const options = {
     body,
     icon: '/icons/icon-192x192.png',
@@ -48,9 +49,11 @@ messaging.onBackgroundMessage((payload) => {
     tag: notifId || 'masjid-notification',
     requireInteraction: false,
     vibrate: [200, 100, 200],
+    // Mobile optimization
     silent: false,
-    renotify: true,
     timestamp: Date.now(),
+    dir: 'ltr',
+    lang: 'ms-MY',
   };
 
   return self.registration.showNotification(title, options);

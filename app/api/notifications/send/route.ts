@@ -28,11 +28,9 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // DATA-ONLY payload — no "notification" key!
-    // On Android PWA, if "notification" is present, the system auto-handles it
-    // and the service worker's onBackgroundMessage never fires, causing
-    // notifications to be silently swallowed. By sending data-only, we force
-    // all messages through our SW handler which calls showNotification().
+    // notification: browser auto-display (foreground toast + background system notif)
+    // data: all string values, read by SW onBackgroundMessage and foreground onMessage
+    const notification = { title, body };
     const data: Record<string, string> = {
       title,
       body,
@@ -40,13 +38,32 @@ export async function POST(request: Request) {
       notifId: notifId || '',
     };
     const webpush = {
-      headers: {
-        Urgency: 'high',
+      notification: {
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        requireInteraction: false,
+        silent: false,
       },
       fcmOptions: { link },
     };
+    // Android configuration for native-like appearance
+    const android = {
+      priority: 'high' as const,
+      notification: {
+        channelId: 'masjid-notifications',
+        priority: 'high' as const,
+        defaultSound: true,
+        defaultVibrateTimings: true,
+        defaultLightSettings: true,
+        icon: '/icons/icon-192x192.png',
+        color: '#10b981',
+        notificationCount: 1,
+      },
+    };
 
-    console.log('[FCM] Payload — data-only:', JSON.stringify(data));
+    console.log('[FCM] Payload — notification:', JSON.stringify(notification));
+    console.log('[FCM] Payload — data:', JSON.stringify(data));
+    console.log('[FCM] Payload — android priority:', android.priority);
 
     let sentCount = 0;
     let failedCount = 0;
@@ -58,7 +75,7 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ topic, data, webpush });
+        const topicResponse = await messaging.send({ topic, notification, data, webpush, android });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
@@ -147,8 +164,10 @@ export async function POST(request: Request) {
 
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
+          notification,
           data,
           webpush,
+          android,
         });
 
         console.log(`[FCM] Batch ${batchNum}: success=${response.successCount}, failure=${response.failureCount}`);
