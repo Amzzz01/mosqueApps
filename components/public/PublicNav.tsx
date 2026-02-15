@@ -9,40 +9,28 @@ export default function PublicNav() {
 
   // PWA install prompt
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   useEffect(() => {
-    // Check if already installed as PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-      return;
-    }
-
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
-
-    const installedHandler = () => setIsInstalled(true);
-    window.addEventListener('appinstalled', installedHandler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      window.removeEventListener('appinstalled', installedHandler);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (deferredPrompt as any).prompt();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { outcome } = await (deferredPrompt as any).userChoice;
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
+    if (deferredPrompt) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (deferredPrompt as any).prompt();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (deferredPrompt as any).userChoice;
+      setDeferredPrompt(null);
+    } else {
+      // Already installed or prompt not available — show manual guide
+      setShowInstallGuide(true);
     }
-    setDeferredPrompt(null);
   };
 
   // 1. Removed Admin Login from here to manage it separately
@@ -117,19 +105,52 @@ export default function PublicNav() {
               </Link>
             ))}
 
-            {/* Install App Button — only shown when not already installed */}
-            {!isInstalled && (
-              <button
-                onClick={() => { handleInstall(); setIsOpen(false); }}
-                className="flex items-center space-x-3 px-4 py-3 rounded-lg w-full text-left bg-white/10 hover:bg-emerald-700 transition-colors"
-              >
-                <Download className="h-5 w-5" />
-                <span>Muat Turun Aplikasi</span>
-              </button>
-            )}
+            {/* Install App Button */}
+            <button
+              onClick={() => { handleInstall(); setIsOpen(false); }}
+              className="flex items-center space-x-3 px-4 py-3 rounded-lg w-full text-left bg-white/10 hover:bg-emerald-700 transition-colors"
+            >
+              <Download className="h-5 w-5" />
+              <span>Muat Turun Aplikasi</span>
+            </button>
           </div>
         )}
       </div>
+
+      {/* Install Guide Modal — shown when app is already installed or prompt unavailable */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowInstallGuide(false)}>
+          <div className="bg-white text-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Muat Turun Aplikasi</h3>
+              <button onClick={() => setShowInstallGuide(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+            <p className="text-sm text-gray-600">
+              Aplikasi ini mungkin sudah dipasang di peranti anda. Jika belum, ikuti langkah berikut:
+            </p>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                <span>Buka laman web ini di <strong>Chrome</strong></span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                <span>Tekan ikon <strong>menu (⋮)</strong> di penjuru kanan atas</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                <span>Pilih <strong>&quot;Pasang aplikasi&quot;</strong> atau <strong>&quot;Tambah ke Skrin Utama&quot;</strong></span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowInstallGuide(false)}
+              className="w-full py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+            >
+              Faham
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

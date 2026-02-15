@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserRoundCog, Building2 } from 'lucide-react';
+import { UserRoundCog, Building2, Download } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 
 const navLinks = [
@@ -18,6 +18,30 @@ export default function Navigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (deferredPrompt as any).prompt();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (deferredPrompt as any).userChoice;
+      setDeferredPrompt(null);
+    } else {
+      setShowInstallGuide(true);
+    }
+  };
 
   // Detect scroll for backdrop effect
   useEffect(() => {
@@ -164,6 +188,15 @@ export default function Navigation() {
 
           <hr className="my-3 border-gray-100" />
 
+          {/* PWA Install Button */}
+          <button
+            onClick={() => { handleInstall(); setMobileOpen(false); }}
+            className="flex items-center gap-2.5 px-4 py-3 text-emerald-700 bg-emerald-50 rounded-xl text-sm font-medium hover:bg-emerald-100 transition-colors w-full text-left"
+          >
+            <Download className="w-4 h-4" />
+            Muat Turun Aplikasi
+          </button>
+
           <Link
             href="/admin/login"
             onClick={() => setMobileOpen(false)}
@@ -174,6 +207,40 @@ export default function Navigation() {
           </Link>
         </nav>
       </div>
+      {/* Install Guide Modal */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] p-4" onClick={() => setShowInstallGuide(false)}>
+          <div className="bg-white text-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Muat Turun Aplikasi</h3>
+              <button onClick={() => setShowInstallGuide(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+            <p className="text-sm text-gray-600">
+              Aplikasi ini mungkin sudah dipasang di peranti anda. Jika belum, ikuti langkah berikut:
+            </p>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                <span>Buka laman web ini di <strong>Chrome</strong></span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                <span>Tekan ikon <strong>menu (⋮)</strong> di penjuru kanan atas</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                <span>Pilih <strong>&quot;Pasang aplikasi&quot;</strong> atau <strong>&quot;Tambah ke Skrin Utama&quot;</strong></span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowInstallGuide(false)}
+              className="w-full py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+            >
+              Faham
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
