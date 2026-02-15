@@ -151,22 +151,18 @@ export async function clearUserTokens(uid: string): Promise<number> {
 }
 
 /**
- * Force refresh: delete old token, get fresh one, save it.
+ * Refresh token for THIS device only.
+ * Does NOT delete tokens from other devices — multi-device support.
  */
 export async function refreshFCMToken(uid: string): Promise<string | null> {
   console.log('[FCM] === Starting token refresh for uid:', uid, '===');
 
-  // Step 1: Delete current token from Firebase
-  await deleteFCMToken();
-
-  // Step 2: Clear old tokens from Firestore
-  await clearUserTokens(uid);
-
-  // Step 3: Request fresh token
+  // Step 1: Get fresh token (getToken returns cached token if still valid,
+  // or creates a new one if expired — no need to delete first)
   const newToken = await requestNotificationPermission();
 
   if (newToken) {
-    // Step 4: Save fresh token
+    // Step 2: Save/update this device's token (keeps other devices' tokens)
     await saveFCMToken(uid, newToken);
     console.log('[FCM] === Token refresh complete ===');
   } else {
@@ -178,41 +174,15 @@ export async function refreshFCMToken(uid: string): Promise<string | null> {
 
 /**
  * Save FCM token to Firestore under users/{uid}/fcmTokens subcollection.
- * Deletes all old tokens for this user first, then saves only if not already present.
- * This ensures one token per user session — no duplicates.
+ * Supports multiple devices — does NOT delete other devices' tokens.
+ * Uses token as doc ID so duplicate tokens are naturally deduplicated.
  */
 export async function saveFCMToken(uid: string, token: string): Promise<void> {
   console.log('[FCM] Saving token for uid:', uid);
-  console.log('[FCM]   New token:', token.slice(0, 30) + '...' + token.slice(-10));
+  console.log('[FCM]   Token:', token.slice(0, 30) + '...' + token.slice(-10));
 
   try {
-    const tokensRef = collection(db, 'users', uid, 'fcmTokens');
-    const existingSnap = await getDocs(tokensRef);
-
-    let alreadyExists = false;
-    const staleRefs: { ref: typeof doc extends (...args: infer R) => infer T ? T : never; id: string }[] = [];
-
-    existingSnap.forEach((tokenDoc) => {
-      const existingToken = tokenDoc.data().token;
-      if (existingToken === token) {
-        alreadyExists = true;
-        console.log('[FCM]   Token already exists — will update timestamp only');
-      } else {
-        // Different token (old session) — mark for deletion
-        staleRefs.push({ ref: tokenDoc.ref, id: tokenDoc.id });
-      }
-    });
-
-    // Delete old/stale tokens for this user
-    if (staleRefs.length > 0) {
-      console.log(`[FCM]   Deleting ${staleRefs.length} old token(s) for user...`);
-      for (const { ref, id } of staleRefs) {
-        await deleteDoc(ref);
-        console.log(`[FCM]     Deleted old token: ${id.slice(0, 20)}...`);
-      }
-    }
-
-    // Save (or update) the current token
+    // Use token as doc ID — upsert, no need to query existing tokens
     const tokenDocRef = doc(db, 'users', uid, 'fcmTokens', token);
     await setDoc(tokenDocRef, {
       token,
@@ -222,7 +192,7 @@ export async function saveFCMToken(uid: string, token: string): Promise<void> {
       platform: navigator.platform || 'unknown',
     }, { merge: true });
 
-    console.log(`[FCM] Token saved. Old removed: ${staleRefs.length}, was existing: ${alreadyExists}`);
+    console.log('[FCM] Token saved successfully');
   } catch (err) {
     console.error('[FCM] Failed to save token:', err);
     if (err instanceof Error && (err.message.includes('permission-denied') || err.message.includes('PERMISSION_DENIED'))) {
