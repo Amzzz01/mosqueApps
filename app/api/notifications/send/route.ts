@@ -28,8 +28,10 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // Data-only message — no `notification` key so the service worker has
-    // full control over display styling (avoids FCM auto-display duplicates).
+    // Top-level notification — required for FCM to deliver push to browser.
+    // The service worker's onBackgroundMessage will handle display styling.
+    const notification = { title, body };
+    // Data payload — read by SW for custom notification display
     const data: Record<string, string> = {
       title,
       body,
@@ -37,15 +39,34 @@ export async function POST(request: Request) {
       notifId: notifId || '',
     };
     const webpush = {
+      notification: {
+        title,
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/badge-72x72.png',
+        tag: notifId || 'masjid-notification',
+        requireInteraction: false,
+        silent: false,
+      },
       fcmOptions: { link },
       headers: { Urgency: 'high' },
     };
     // Android configuration for native-like appearance
     const android = {
       priority: 'high' as const,
+      notification: {
+        channelId: 'masjid-notifications',
+        priority: 'high' as const,
+        defaultSound: true,
+        defaultVibrateTimings: true,
+        icon: '/icons/icon-192x192.png',
+        color: '#059669',
+      },
     };
 
+    console.log('[FCM] Payload — notification:', JSON.stringify(notification));
     console.log('[FCM] Payload — data:', JSON.stringify(data));
+    console.log('[FCM] Payload — webpush:', JSON.stringify(webpush));
     console.log('[FCM] Payload — android priority:', android.priority);
 
     let sentCount = 0;
@@ -58,7 +79,7 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ topic, data, webpush, android });
+        const topicResponse = await messaging.send({ topic, notification, data, webpush, android });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
@@ -147,6 +168,7 @@ export async function POST(request: Request) {
 
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
+          notification,
           data,
           webpush,
           android,

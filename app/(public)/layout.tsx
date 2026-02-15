@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPermission from '@/components/NotificationPermission';
+import FCMProvider from '@/components/FCMProvider';
 import { Building2, Phone, MapPin, Mail, Clock, MessageSquare } from 'lucide-react';
 
 export default function PublicLayout({
@@ -21,7 +22,9 @@ export default function PublicLayout({
         {children}
       </main>
 
-      {/* FCM Notification */}
+      {/* FCM token registration + foreground message listener */}
+      <FCMProvider />
+      {/* Permission prompt UI (bell button) */}
       <NotificationPermission />
 
       {/* Footer */}

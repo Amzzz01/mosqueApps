@@ -1,16 +1,15 @@
 // components/NotificationPermission.tsx
+// UI-only: shows the bell button + prompt to enable notifications.
+// Token registration and foreground message listening is handled by FCMProvider.
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, BellOff, X } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import {
   requestNotificationPermission,
   saveFCMToken,
-  refreshFCMToken,
-  getPermissionStatus,
-  onMessageListener,
 } from '@/lib/firebase-messaging';
 import toast from 'react-hot-toast';
 
@@ -20,7 +19,6 @@ export default function NotificationPermission() {
   const [permissionState, setPermissionState] = useState<NotificationPermission | ''>('');
   const [showPrompt, setShowPrompt] = useState(false);
 
-  // Check auth state and notification support
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -41,58 +39,6 @@ export default function NotificationPermission() {
     return () => unsubAuth();
   }, []);
 
-  // Auto-register token if user is authenticated and permission already granted
-  useEffect(() => {
-    if (!user || !supported || permissionState !== 'granted') return;
-
-    console.log('[NotifPermission] Permission granted + user logged in — refreshing FCM token...');
-    refreshFCMToken(user.uid).then((token) => {
-      if (token) {
-        console.log('[NotifPermission] Fresh token registered successfully');
-      } else {
-        console.warn('[NotifPermission] Failed to get fresh token — try checking browser settings');
-      }
-    });
-  }, [user, supported, permissionState]);
-
-  // Listen for foreground messages
-  useEffect(() => {
-    if (!supported || permissionState !== 'granted') return;
-
-    const unsubscribe = onMessageListener((payload: unknown) => {
-      const msg = payload as {
-        notification?: { title?: string; body?: string };
-        data?: { title?: string; body?: string; link?: string };
-      };
-      // Data-only messages: title/body come from data field
-      const title = msg?.data?.title || msg?.notification?.title || 'Notifikasi Baru';
-      const body = msg?.data?.body || msg?.notification?.body || '';
-
-      toast(
-        (t) => (
-          <div className="flex items-start gap-3">
-            <Bell className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-gray-900">{title}</p>
-              {body && <p className="text-sm text-gray-600 mt-0.5">{body}</p>}
-            </div>
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ),
-        { duration: 6000 }
-      );
-    });
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [supported, permissionState]);
-
   const handleRequest = useCallback(async () => {
     setShowPrompt(false);
 
@@ -109,7 +55,7 @@ export default function NotificationPermission() {
     }
   }, [user]);
 
-  // Don't render if not supported or already granted
+  // Don't render if not supported or already granted/denied
   if (!supported) return null;
   if (permissionState === 'granted') return null;
   if (permissionState === 'denied') return null;

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import ProtectedRoute from '@/components/admin/ProtectedRoute';
+import FCMProvider from '@/components/FCMProvider';
 import { Menu, Building2, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -71,6 +72,7 @@ export default function AdminLayout({
   return (
     <AuthProvider>
       <ProtectedRoute>
+        <FCMProvider />
         <div className="flex min-h-screen bg-gray-50">
           {/* Sidebar */}
           <AdminSidebar
