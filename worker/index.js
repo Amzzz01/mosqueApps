@@ -33,7 +33,7 @@ messaging.onBackgroundMessage((payload) => {
 
   const data = payload.data || {};
   const notif = payload.notification || {};
-  const title = data.title || notif.title || 'Masjid Al-Falah';
+  const title = data.title || notif.title || 'MASJID AL-FALAH';
   const body = data.body || notif.body || '';
   const link = data.link || data.url || '/';
   const notifId = data.notifId || '';
@@ -83,7 +83,7 @@ self.addEventListener('push', (event) => {
       console.warn('[SW] push event — could not parse payload:', e);
     }
 
-    const title = data.title || 'Masjid Al-Falah';
+    const title = data.title || 'MASJID AL-FALAH';
     const body = data.body || '';
     const link = data.link || data.url || '/';
     const notifId = data.notifId || '';

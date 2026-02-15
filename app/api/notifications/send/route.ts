@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         defaultVibrateTimings: true,
         defaultLightSettings: true,
         icon: '/icons/icon-192x192.png',
-        color: '#10b981',
+        color: '#059669',
         notificationCount: 1,
       },
     };
