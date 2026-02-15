@@ -64,6 +64,7 @@ export default function NotificationPermission() {
         notification?: { title?: string; body?: string };
         data?: { title?: string; body?: string; link?: string };
       };
+      // Data-only messages: title/body come from data field
       const title = msg?.data?.title || msg?.notification?.title || 'Notifikasi Baru';
       const body = msg?.data?.body || msg?.notification?.body || '';
 

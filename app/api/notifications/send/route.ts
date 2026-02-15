@@ -28,9 +28,8 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // notification: browser auto-display (foreground toast + background system notif)
-    // data: all string values, read by SW onBackgroundMessage and foreground onMessage
-    const notification = { title, body };
+    // Data-only message — no `notification` key so the service worker has
+    // full control over display styling (avoids FCM auto-display duplicates).
     const data: Record<string, string> = {
       title,
       body,
@@ -38,30 +37,14 @@ export async function POST(request: Request) {
       notifId: notifId || '',
     };
     const webpush = {
-      notification: {
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-192x192.png',
-        requireInteraction: false,
-        silent: false,
-      },
       fcmOptions: { link },
+      headers: { Urgency: 'high' },
     };
     // Android configuration for native-like appearance
     const android = {
       priority: 'high' as const,
-      notification: {
-        channelId: 'masjid-notifications',
-        priority: 'high' as const,
-        defaultSound: true,
-        defaultVibrateTimings: true,
-        defaultLightSettings: true,
-        icon: '/icons/icon-192x192.png',
-        color: '#059669',
-        notificationCount: 1,
-      },
     };
 
-    console.log('[FCM] Payload — notification:', JSON.stringify(notification));
     console.log('[FCM] Payload — data:', JSON.stringify(data));
     console.log('[FCM] Payload — android priority:', android.priority);
 
@@ -75,7 +58,7 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ topic, notification, data, webpush, android });
+        const topicResponse = await messaging.send({ topic, data, webpush, android });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
@@ -164,7 +147,6 @@ export async function POST(request: Request) {
 
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
-          notification,
           data,
           webpush,
           android,

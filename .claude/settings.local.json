@@ -13,7 +13,13 @@
       "Bash(npm run build:*)",
       "Bash(powershell -Command \"\\(Get-Content C:\\\\MyMasjidApp\\\\public\\\\sw.js -Raw\\) -match ''firebase-app-compat''\")",
       "Bash(powershell:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(test:*)",
+      "Bash(for file in \"lib/api/jakim\" \"lib/uploadHelpers\" \"lib/aktiviti\" \"lib/jadualKuliah\" \"lib/notifications\" \"lib/firebase-messaging\" \"lib/notification-debug\")",
+      "Bash(do echo \"=== Checking $file ===\" grep -r \"from.*$file\\\\|import.*$file\" --include=\"*.ts\" --include=\"*.tsx\" .)",
+      "Bash(done)",
+      "Bash(for file in \"PublicNav\" \"lib/utils\" \"lib/db/operation\" \"lib/firebase/index\")",
+      "Bash(do echo \"=== $file ===\")"
     ]
   }
 }

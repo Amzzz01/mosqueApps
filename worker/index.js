@@ -26,36 +26,39 @@ console.log('[SW] Firebase messaging instance ready');
 // listener below can act as a fallback without showing duplicates.
 let bgMessageHandled = false;
 
-// Handle background messages — onBackgroundMessage is the correct API for compat SDK v10+
-messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] onBackgroundMessage fired:', JSON.stringify(payload));
-  bgMessageHandled = true;
-
-  const data = payload.data || {};
-  const notif = payload.notification || {};
-  const title = data.title || notif.title || 'MASJID AL-FALAH';
-  const body = data.body || notif.body || '';
+// Build notification options with Android-style branding
+function buildNotifOptions(data) {
+  const body = data.body || '';
   const link = data.link || data.url || '/';
   const notifId = data.notifId || '';
 
-  console.log('[SW] Showing notification:', title, body, link);
-
-  // iOS/Android native-style notification options
-  const options = {
+  return {
     body,
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    image: undefined,
     data: { url: link, link, notifId },
     tag: notifId || 'masjid-notification',
+    renotify: true,
     requireInteraction: false,
     vibrate: [200, 100, 200],
-    // Mobile optimization
     silent: false,
     timestamp: Date.now(),
     dir: 'ltr',
     lang: 'ms-MY',
   };
+}
 
+// Handle background messages — data-only messages arrive here
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] onBackgroundMessage fired:', JSON.stringify(payload));
+  bgMessageHandled = true;
+
+  const data = payload.data || {};
+  const title = data.title || 'MASJID AL-FALAH';
+  const options = buildNotifOptions(data);
+
+  console.log('[SW] Showing notification:', title, options.body);
   return self.registration.showNotification(title, options);
 });
 
@@ -84,22 +87,9 @@ self.addEventListener('push', (event) => {
     }
 
     const title = data.title || 'MASJID AL-FALAH';
-    const body = data.body || '';
-    const link = data.link || data.url || '/';
-    const notifId = data.notifId || '';
-
-    const options = {
-      body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
-      data: { url: link, link, notifId },
-      tag: notifId || 'masjid-notification-fallback',
-      requireInteraction: false,
-      vibrate: [200, 100, 200],
-      silent: false,
-      renotify: true,
-      timestamp: Date.now(),
-    };
+    const options = buildNotifOptions(data);
+    // Use distinct tag for fallback to avoid conflicts
+    options.tag = (data.notifId || 'masjid-notification') + '-fallback';
 
     return self.registration.showNotification(title, options);
   };
