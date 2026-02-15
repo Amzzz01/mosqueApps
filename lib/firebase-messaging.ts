@@ -59,36 +59,12 @@ export async function requestNotificationPermission(): Promise<string | null> {
   }
 
   try {
-    // Register the FCM service worker on its own scope so it does NOT
-    // conflict with the PWA service worker (sw.js) at scope '/'.
-    console.log('[FCM] Registering firebase-messaging-sw.js...');
-    const swRegistration = await navigator.serviceWorker.register(
-      '/firebase-messaging-sw.js',
-      { scope: '/firebase-cloud-messaging-push-scope' }
-    );
-    console.log('[FCM] Service worker registered, scope:', swRegistration.scope);
-
-    // Wait until the FCM SW is active
-    if (swRegistration.installing) {
-      await new Promise<void>((resolve) => {
-        swRegistration.installing!.addEventListener('statechange', function handler() {
-          if (this.state === 'activated') {
-            this.removeEventListener('statechange', handler);
-            resolve();
-          }
-        });
-      });
-    } else if (swRegistration.waiting) {
-      await new Promise<void>((resolve) => {
-        swRegistration.waiting!.addEventListener('statechange', function handler() {
-          if (this.state === 'activated') {
-            this.removeEventListener('statechange', handler);
-            resolve();
-          }
-        });
-      });
-    }
-    console.log('[FCM] Service worker is active');
+    // Use the PWA service worker (sw.js) which already includes Firebase
+    // messaging code via worker/index.js + importScripts in next.config.js.
+    // Single SW approach avoids scope conflicts on mobile.
+    console.log('[FCM] Getting PWA service worker registration (sw.js)...');
+    const swRegistration = await navigator.serviceWorker.ready;
+    console.log('[FCM] Service worker ready, scope:', swRegistration.scope);
 
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     console.log('[FCM] VAPID key present:', !!vapidKey, vapidKey ? `(${vapidKey.slice(0, 10)}...)` : '');

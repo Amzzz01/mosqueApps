@@ -6,8 +6,10 @@ const withPWA = require('next-pwa')({
   fallbacks: {
     document: '/offline',
   },
-  // Exclude the FCM service worker from Workbox precaching —
-  // it runs on its own scope and must not be cached as a static asset.
+  importScripts: [
+    'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js',
+  ],
   publicExcludes: ['!firebase-messaging-sw.js'],
 });
 

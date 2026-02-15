@@ -73,9 +73,19 @@ export async function sendTestNotification(): Promise<boolean> {
     return false;
   }
 
-  if (Notification.permission !== 'granted') {
-    console.error('[Test] Permission not granted');
+  if (Notification.permission === 'denied') {
+    console.error('[Test] Permission denied by user');
     return false;
+  }
+
+  // If permission is 'default', request it first
+  if (Notification.permission === 'default') {
+    console.log('[Test] Permission is default, requesting...');
+    const result = await Notification.requestPermission();
+    if (result !== 'granted') {
+      console.error('[Test] Permission not granted after request:', result);
+      return false;
+    }
   }
 
   try {
