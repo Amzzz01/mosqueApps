@@ -233,7 +233,7 @@ export async function POST(request: Request) {
     }
 
     // ─── Save/update notification record (single write) ───
-    const status = sentCount > 0 ? 'sent' : failedCount > 0 ? 'failed' : 'sent';
+    const status = sentCount > 0 ? 'sent' : 'failed';
     console.log(`[API/notifications] Final: sent=${sentCount}, failed=${failedCount}, cleaned=${cleanedCount}, total=${recipientCount}`);
 
     const updateData = {

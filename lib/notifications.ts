@@ -109,6 +109,7 @@ export async function sendNotification(data: {
       body: JSON.stringify({
         title: data.title,
         body: data.body,
+        recipientType: data.recipientType || 'all',
         url: data.url || '/',
         ...(data.topic ? { topic: data.topic } : {}),
         notifId: notifRef.id,

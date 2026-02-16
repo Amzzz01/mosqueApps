@@ -247,11 +247,18 @@ export default function NotificationsPage() {
           createdBy: uid,
         });
         console.log('[Send] Result:', result);
-        const parts: string[] = [];
-        parts.push(`${result.sent}/${result.sent + (result.failed || 0)} berjaya`);
-        if (result.failed > 0) parts.push(`${result.failed} gagal`);
-        if (result.cleaned > 0) parts.push(`${result.cleaned} token tidak sah dipadam`);
-        toast.success(`Notifikasi dihantar: ${parts.join(', ')}`, { duration: 5000 });
+        const total = result.sent + (result.failed || 0);
+        if (total === 0) {
+          toast.error('Tiada peranti berdaftar untuk menerima notifikasi. Pastikan pengguna telah membenarkan notifikasi.', { duration: 6000 });
+        } else if (result.sent === 0) {
+          toast.error(`Gagal menghantar ke semua ${total} peranti. ${result.cleaned || 0} token tidak sah dipadam.`, { duration: 6000 });
+        } else {
+          const parts: string[] = [];
+          parts.push(`${result.sent}/${total} berjaya`);
+          if (result.failed > 0) parts.push(`${result.failed} gagal`);
+          if (result.cleaned > 0) parts.push(`${result.cleaned} token tidak sah dipadam`);
+          toast.success(`Notifikasi dihantar: ${parts.join(', ')}`, { duration: 5000 });
+        }
       }
 
       // Reset form
