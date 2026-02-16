@@ -1,4 +1,5 @@
 // app/api/notifications/send/route.ts
+// FIXED VERSION - Includes notification key for automatic browser display
 import { NextResponse } from 'next/server';
 import { getAdminMessaging, getAdminFirestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -28,24 +29,50 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // DATA-ONLY payload — no top-level `notification` key.
-    // This ensures the browser does NOT auto-display a default notification.
-    // Instead, the SW's onBackgroundMessage fires and we have full control
-    // over the notification format (matching "Hantar Notifikasi Ujian").
+    // HYBRID payload — includes BOTH `notification` and `data` keys.
+    // ✅ `notification` key: Triggers browser's automatic notification display
+    // ✅ `data` key: Allows service worker customization if needed
+    // This ensures notifications work reliably across all browsers and states.
+    const notification = {
+      title,
+      body,
+    };
+    
     const data: Record<string, string> = {
       title,
       body,
       link,
       notifId: notifId || '',
     };
+    
     const webpush = {
       fcmOptions: { link },
       headers: { Urgency: 'high', TTL: '86400' },
+      notification: {
+        title,
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/badge-72x72.png',
+        tag: notifId || 'masjid-notification',
+        requireInteraction: false,
+        silent: false,
+      },
     };
+    
     const android = {
       priority: 'high' as const,
+      notification: {
+        title,
+        body,
+        icon: '/icons/icon-192x192.png',
+        color: '#10b981',
+        channelId: 'masjid-notifications',
+        defaultSound: true,
+        defaultVibrateTimings: true,
+      },
     };
 
+    console.log('[FCM] Payload — notification:', JSON.stringify(notification));
     console.log('[FCM] Payload — data:', JSON.stringify(data));
     console.log('[FCM] Payload — webpush:', JSON.stringify(webpush));
 
@@ -59,7 +86,13 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ topic, data, webpush, android });
+        const topicResponse = await messaging.send({ 
+          topic, 
+          notification,  // ✅ ADDED
+          data, 
+          webpush, 
+          android 
+        });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
         recipientCount = 1;
@@ -148,6 +181,7 @@ export async function POST(request: Request) {
 
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
+          notification,  // ✅ ADDED - This is the key fix!
           data,
           webpush,
           android,
