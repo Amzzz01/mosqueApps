@@ -1,35 +1,18 @@
 // public/firebase-worker.js
-// Firebase Cloud Messaging handlers
-// Loaded via importScripts in next.config.js
+// Standalone push notification handler (fallback for non-PWA contexts).
+// Uses raw push event listener — no Firebase SDK dependency.
 
-console.log('[SW] Firebase messaging worker loading...');
+console.log('[SW] Firebase worker loading...');
 
-try {
-  firebase.initializeApp({
-    apiKey: 'AIzaSyA1tqrXxikBdRbzz1wFIjiPkD9E9Qwomd8',
-    authDomain: 'mymosqueapps.firebaseapp.com',
-    projectId: 'mymosqueapps',
-    storageBucket: 'mymosqueapps.firebasestorage.app',
-    messagingSenderId: '459715855904',
-    appId: '1:459715855904:web:c86195995c76c9e64a9e45',
-  });
-  console.log('[SW] Firebase initialized OK');
-} catch (e) {
-  console.log('[SW] Firebase already initialized or error:', e.message);
-}
-
-const messaging = firebase.messaging();
-
-// ─── Build notification options ───
-function buildOptions(data, notif) {
+function buildNotificationOptions(data, notif) {
   return {
     body: data.body || notif.body || '',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-72x72.png',
-    data: { 
-      url: data.link || '/', 
-      link: data.link || '/', 
-      notifId: data.notifId || '' 
+    data: {
+      url: data.link || '/',
+      link: data.link || '/',
+      notifId: data.notifId || '',
     },
     tag: data.notifId || 'masjid-notification',
     renotify: true,
@@ -42,18 +25,25 @@ function buildOptions(data, notif) {
   };
 }
 
-// ─── Background message handler ───
-messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] onBackgroundMessage:', JSON.stringify(payload));
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push event received');
 
-  const data = payload.data || {};
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    console.error('[SW] Failed to parse push data:', e);
+  }
+
   const notif = payload.notification || {};
+  const data = payload.data || {};
   const title = data.title || notif.title || 'MASJID AL-FALAH';
 
-  return self.registration.showNotification(title, buildOptions(data, notif));
+  event.waitUntil(
+    self.registration.showNotification(title, buildNotificationOptions(data, notif))
+  );
 });
 
-// ─── Notification click → open / focus app ───
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event.notification.tag);
   event.notification.close();
@@ -76,4 +66,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW] All handlers registered OK');
+console.log('[SW] Firebase worker handlers registered OK');
