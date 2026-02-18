@@ -38,12 +38,49 @@ export async function testNotificationPermissions(): Promise<{
   let serviceWorkerReady = false;
   if (swSupported) {
     try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      serviceWorkerReady = !!registration && !!registration.active;
-      details.push(`SW Ready: ${serviceWorkerReady ? '✓' : '✗'}`);
-      if (registration) {
-        details.push(`SW Scope: ${registration.scope}`);
-        details.push(`SW State: ${registration.active?.state || 'none'}`);
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+
+      if (registration && 'active' in registration) {
+        const reg = registration as ServiceWorkerRegistration;
+        serviceWorkerReady = !!reg.active;
+        details.push(`SW Ready: ${serviceWorkerReady ? '✓' : '✗'}`);
+        details.push(`SW Scope: ${reg.scope}`);
+        details.push(`SW State: ${reg.active?.state || 'none'}`);
+        details.push(`SW Script: ${reg.active?.scriptURL || 'none'}`);
+
+        // Also report installing/waiting SW if present
+        if (reg.installing) {
+          details.push(`SW Installing: ${reg.installing.state}`);
+        }
+        if (reg.waiting) {
+          details.push(`SW Waiting: ${reg.waiting.state}`);
+        }
+
+        // Check push subscription
+        try {
+          const pushSub = await reg.pushManager.getSubscription();
+          details.push(`Push Subscription: ${pushSub ? '✓' : '✗'}`);
+          if (pushSub) {
+            details.push(`Push Endpoint: ${pushSub.endpoint.slice(0, 50)}...`);
+          }
+        } catch (pushErr) {
+          details.push(`Push Sub Error: ${pushErr}`);
+        }
+      } else {
+        details.push('SW Ready: ✗ (timeout after 5s — SW not activated)');
+        // Fallback: check getRegistration for more info
+        const fallbackReg = await navigator.serviceWorker.getRegistration();
+        if (fallbackReg) {
+          details.push(`SW Scope: ${fallbackReg.scope}`);
+          details.push(`SW Active: ${fallbackReg.active?.state || 'none'}`);
+          if (fallbackReg.installing) details.push(`SW Installing: ${fallbackReg.installing.state}`);
+          if (fallbackReg.waiting) details.push(`SW Waiting: ${fallbackReg.waiting.state}`);
+        } else {
+          details.push('SW Registration: none found');
+        }
       }
     } catch (err) {
       details.push(`SW Error: ${err}`);
@@ -93,8 +130,8 @@ export async function sendTestNotification(): Promise<boolean> {
 
     await registration.showNotification('MASJID AL-FALAH', {
       body: 'Ini adalah notifikasi ujian. Jika anda melihat ini, notifikasi berfungsi dengan baik!',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
+      icon: window.location.origin + '/icons/icon-192x192.png',
+      badge: window.location.origin + '/icons/badge-72x72.png',
       tag: 'test-notification',
       vibrate: [200, 100, 200],
       requireInteraction: false,
