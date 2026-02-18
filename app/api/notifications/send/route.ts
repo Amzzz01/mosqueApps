@@ -30,9 +30,10 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    const baseUrl = request.headers.get('origin')
-      || request.headers.get('x-forwarded-host')
-      || 'https://mymasjidapp.vercel.app';
+    const origin = request.headers.get('origin');
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl = origin || (forwardedHost ? `${proto}://${forwardedHost}` : 'https://mymasjidapp.vercel.app');
 
     // DATA-ONLY payload — no `notification` key.
     // The service worker's raw `push` handler displays the notification.
@@ -51,6 +52,9 @@ export async function POST(request: Request) {
       headers: {
         Urgency: 'high',
         TTL: '86400',
+      },
+      fcmOptions: {
+        link: baseUrl + (link !== '/' ? link : ''),
       },
     };
 
