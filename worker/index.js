@@ -1,59 +1,67 @@
 // worker/index.js
-// Firebase Cloud Messaging + PWA service worker.
+// Push notification handler for PWA service worker.
 // next-pwa merges this into the generated public/sw.js on build.
 //
-// IMPORTANT: next-pwa loads this file BEFORE the Firebase compat scripts
-// (importScripts order: worker → firebase-app-compat → firebase-messaging-compat).
-// Therefore we CANNOT use firebase.messaging().onBackgroundMessage() —
-// firebase is undefined when this code first executes.
-//
-// Instead, we use raw `push` and `notificationclick` event listeners
-// which register synchronously and work regardless of import order.
+// Uses raw `push` and `notificationclick` event listeners.
+// No Firebase SDK dependency — works regardless of import order.
 
 console.log('[SW] Push notification worker loading...');
 
-// ─── Build notification options from push data ───
-function buildNotificationOptions(data, notif) {
-  return {
-    body: data.body || notif.body || '',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
-    data: {
-      url: data.link || '/',
-      link: data.link || '/',
-      notifId: data.notifId || '',
-    },
-    tag: data.notifId || 'masjid-notification',
-    renotify: true,
-    requireInteraction: false,
-    vibrate: [200, 100, 200],
-    silent: false,
-    timestamp: Date.now(),
-    dir: 'ltr',
-    lang: 'ms-MY',
-  };
-}
-
-// ─── Push event handler (raw — no Firebase dependency) ───
+// ─── Push event handler ───
 self.addEventListener('push', (event) => {
   console.log('[SW] Push event received');
 
+  if (!event.data) {
+    console.warn('[SW] Push event has no data');
+    return;
+  }
+
   let payload = {};
   try {
-    payload = event.data ? event.data.json() : {};
+    payload = event.data.json();
   } catch (e) {
     console.error('[SW] Failed to parse push data:', e);
+    // Try as text
+    try {
+      payload = JSON.parse(event.data.text());
+    } catch (e2) {
+      console.error('[SW] Failed to parse push text:', e2);
+    }
   }
 
   console.log('[SW] Push payload:', JSON.stringify(payload));
 
-  // FCM payloads have `notification` and/or `data` at the top level
-  const notif = payload.notification || {};
-  const data = payload.data || {};
-  const title = data.title || notif.title || 'MASJID AL-FALAH';
+  // FCM data-only messages: fields are nested under `data` key
+  // FCM notification messages: `notification` + `data` at top level
+  // Handle both formats
+  const fcmData = payload.data || {};
+  const fcmNotif = payload.notification || {};
+
+  const title = fcmData.title || fcmNotif.title || payload.title || 'MASJID AL-FALAH';
+  const body = fcmData.body || fcmNotif.body || payload.body || '';
+  const icon = fcmData.icon || fcmNotif.icon || '/icons/icon-192x192.png';
+  const badge = fcmData.badge || fcmNotif.badge || '/icons/badge-72x72.png';
+  const link = fcmData.link || fcmData.url || payload.fcmOptions?.link || '/';
+  const tag = fcmData.tag || fcmData.notifId || fcmNotif.tag || 'masjid-notification';
+
+  console.log('[SW] Showing notification:', title, '|', body);
+
+  const options = {
+    body,
+    icon,
+    badge,
+    data: { url: link, link, notifId: fcmData.notifId || '' },
+    tag,
+    renotify: true,
+    requireInteraction: false,
+    vibrate: [200, 100, 200],
+    timestamp: Date.now(),
+    dir: 'ltr',
+    lang: 'ms-MY',
+  };
 
   event.waitUntil(
-    self.registration.showNotification(title, buildNotificationOptions(data, notif))
+    self.registration.showNotification(title, options)
   );
 });
 
@@ -67,17 +75,14 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // Try to focus an existing tab with the same URL
       for (const client of clients) {
         if (client.url === urlToOpen && 'focus' in client) return client.focus();
       }
-      // Try to navigate an existing tab from our origin
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && 'navigate' in client) {
           return client.navigate(urlToOpen).then(() => client.focus());
         }
       }
-      // Open a new window
       return self.clients.openWindow(urlToOpen);
     })
   );

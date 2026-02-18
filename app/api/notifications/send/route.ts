@@ -1,5 +1,6 @@
 // app/api/notifications/send/route.ts
-// FIXED VERSION - Includes notification key for automatic browser display
+// DATA-ONLY payload — service worker handles notification display.
+// This avoids conflicts with Firebase SDK intercepting the notification key.
 import { NextResponse } from 'next/server';
 import { getAdminMessaging, getAdminFirestore } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -29,36 +30,26 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
-    // HYBRID payload — includes BOTH `notification` and `data` keys.
-    // ✅ `notification` key: Triggers browser's automatic notification display
-    // ✅ `data` key: Allows service worker customization if needed
-    // This ensures notifications work reliably across all browsers and states.
-    const notification = {
-      title,
-      body,
-    };
-    
+    // DATA-ONLY payload — no `notification` key.
+    // The service worker's raw `push` handler displays the notification.
+    // This avoids Firebase SDK intercepting and suppressing our handler.
     const data: Record<string, string> = {
       title,
       body,
       link,
       notifId: notifId || '',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/badge-72x72.png',
+      tag: notifId || 'masjid-notification',
     };
-    
+
     const webpush = {
-      fcmOptions: { link },
-      headers: { Urgency: 'high', TTL: '86400' },
-      notification: {
-        title,
-        body,
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/badge-72x72.png',
-        tag: notifId || 'masjid-notification',
-        requireInteraction: false,
-        silent: false,
+      headers: {
+        Urgency: 'high',
+        TTL: '86400',
       },
     };
-    
+
     const android = {
       priority: 'high' as const,
       notification: {
@@ -72,9 +63,7 @@ export async function POST(request: Request) {
       },
     };
 
-    console.log('[FCM] Payload — notification:', JSON.stringify(notification));
     console.log('[FCM] Payload — data:', JSON.stringify(data));
-    console.log('[FCM] Payload — webpush:', JSON.stringify(webpush));
 
     let sentCount = 0;
     let failedCount = 0;
@@ -86,12 +75,11 @@ export async function POST(request: Request) {
     if (recipientType === 'topic' && topic) {
       console.log('[FCM] Sending to topic:', topic);
       try {
-        const topicResponse = await messaging.send({ 
-          topic, 
-          notification,  // ✅ ADDED
-          data, 
-          webpush, 
-          android 
+        const topicResponse = await messaging.send({
+          topic,
+          data,
+          webpush,
+          android,
         });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
@@ -149,10 +137,9 @@ export async function POST(request: Request) {
       recipientCount = tokens.length;
 
       if (tokens.length === 0) {
-        // Update existing doc if notifId provided, otherwise create new
         if (notifId) {
           await db.collection('notifications').doc(notifId).update({
-            status: 'sent',
+            status: 'failed',
             sentAt: FieldValue.serverTimestamp(),
             recipientCount: 0,
             sentCount: 0,
@@ -181,7 +168,6 @@ export async function POST(request: Request) {
 
         const response = await messaging.sendEachForMulticast({
           tokens: batch,
-          notification,  // ✅ ADDED - This is the key fix!
           data,
           webpush,
           android,
@@ -232,7 +218,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // ─── Save/update notification record (single write) ───
+    // ─── Save/update notification record ───
     const status = sentCount > 0 ? 'sent' : 'failed';
     console.log(`[API/notifications] Final: sent=${sentCount}, failed=${failedCount}, cleaned=${cleanedCount}, total=${recipientCount}`);
 
@@ -249,10 +235,8 @@ export async function POST(request: Request) {
     let recordId = notifId;
 
     if (notifId) {
-      // Update existing doc created by the client
       await db.collection('notifications').doc(notifId).update(updateData);
     } else {
-      // No existing doc — create one (direct API call without client)
       const newDoc = await db.collection('notifications').add({
         title,
         body,
@@ -280,4 +264,4 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message : 'Gagal menghantar notifikasi';
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}// Cache bust 
+}

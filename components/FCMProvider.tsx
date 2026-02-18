@@ -4,7 +4,7 @@
 // work regardless of which section the user is viewing.
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import {
@@ -17,10 +17,26 @@ import toast from 'react-hot-toast';
 
 export default function FCMProvider() {
   const registered = useRef(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+
+  // Poll for permission changes (covers case where permission is granted
+  // after component mounts, e.g. via admin "Hantar" button)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    const check = () => {
+      const granted = Notification.permission === 'granted';
+      setPermissionGranted(granted);
+    };
+
+    check();
+    const interval = setInterval(check, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-register / refresh FCM token when user is logged in + permission granted
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!permissionGranted) return;
 
     const isSupported =
       'Notification' in window &&
@@ -30,7 +46,6 @@ export default function FCMProvider() {
 
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (!user) return;
-      if (getPermissionStatus() !== 'granted') return;
       if (registered.current) return;
       registered.current = true;
 
@@ -40,19 +55,19 @@ export default function FCMProvider() {
           console.log('[FCMProvider] Token registered OK');
         } else {
           console.warn('[FCMProvider] Failed to get token');
-          registered.current = false; // allow retry
+          registered.current = false;
         }
       });
     });
 
     return () => unsubAuth();
-  }, []);
+  }, [permissionGranted]);
 
-  // Listen for foreground FCM messages → show toast
+  // Listen for foreground FCM messages → show system notification + toast
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (getPermissionStatus() !== 'granted') return;
+    if (!permissionGranted) return;
 
+    console.log('[FCMProvider] Setting up onMessage listener');
     const unsubscribe = onMessageListener((payload: unknown) => {
       const msg = payload as {
         notification?: { title?: string; body?: string };
@@ -63,6 +78,22 @@ export default function FCMProvider() {
 
       console.log('[FCMProvider] Foreground message:', title, body);
 
+      // Show system notification (same as background behavior)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.showNotification(title, {
+            body,
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/badge-72x72.png',
+            tag: msg?.data?.link || 'foreground-notification',
+            data: { url: msg?.data?.link || '/', link: msg?.data?.link || '/' },
+          } as NotificationOptions);
+        }).catch((err) => {
+          console.error('[FCMProvider] showNotification failed:', err);
+        });
+      }
+
+      // Also show in-app toast
       toast(
         (t) => (
           <div className="flex items-start gap-3">
@@ -86,7 +117,7 @@ export default function FCMProvider() {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [permissionGranted]);
 
-  return null; // No UI — this is a provider component
+  return null;
 }

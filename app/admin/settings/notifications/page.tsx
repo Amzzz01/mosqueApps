@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Bell, Send, History, Settings, Save, Trash2,
   Clock, Eye, AlertCircle, CheckCircle, XCircle, Loader2,
-  Calendar, Moon, ShieldCheck, Bug, Smartphone,
+  Calendar, Moon, ShieldCheck, Bug, Smartphone, CheckSquare,
 } from 'lucide-react';
 import { testNotificationPermissions, sendTestNotification } from '@/lib/notification-debug';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/lib/notifications';
 import NotificationPreview from '@/components/admin/NotificationPreview';
 import { auth } from '@/lib/firebase/config';
+import { requestNotificationPermission, saveFCMToken, getPermissionStatus } from '@/lib/firebase-messaging';
 import { Timestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
@@ -114,6 +115,8 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, sent: 0, failed: 0, scheduled: 0, totalDelivered: 0 });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   // ─── Load Settings ───
   useEffect(() => {
@@ -200,32 +203,50 @@ export default function NotificationsPage() {
     }
   };
 
+  // ─── Ensure this device has notification permission + FCM token ───
+  const ensureNotificationSetup = async (): Promise<boolean> => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      toast.error('Sila log masuk terlebih dahulu');
+      return false;
+    }
+
+    // Check/request permission
+    const permission = getPermissionStatus();
+    if (permission === 'denied') {
+      toast.error('Notifikasi disekat oleh pelayar. Sila benarkan di tetapan pelayar.', { duration: 6000 });
+      return false;
+    }
+
+    if (permission !== 'granted') {
+      console.log('[Send] Requesting notification permission...');
+      const token = await requestNotificationPermission();
+      if (!token) {
+        toast.error('Kebenaran notifikasi diperlukan untuk menghantar notifikasi ujian.', { duration: 5000 });
+        return false;
+      }
+      await saveFCMToken(uid, token);
+      console.log('[Send] FCM token registered for admin device');
+    }
+
+    return true;
+  };
+
   // ─── Send Handlers ───
   const handleSend = async () => {
-    console.log('Button clicked!');
-    console.log('[Send] Form state:', {
-      title: sendTitle,
-      message: sendBody,
-      recipientType,
-      selectedTopic: topic,
-      customLink: sendUrl,
-      isScheduled,
-      scheduledDateTime,
-    });
-
     if (!sendTitle.trim() || !sendBody.trim()) {
-      console.log('[Send] Validation failed: title or body empty');
       toast.error('Sila isi tajuk dan kandungan');
       return;
     }
 
     const uid = auth.currentUser?.uid || 'admin';
-    console.log('[Send] Auth uid:', uid);
     setSending(true);
 
     try {
+      // Ensure at least this device can receive notifications
+      await ensureNotificationSetup();
+
       if (isScheduled && scheduledDateTime) {
-        console.log('[Send] Scheduling notification for:', scheduledDateTime);
         const id = await scheduleNotification({
           title: sendTitle.trim(),
           body: sendBody.trim(),
@@ -234,7 +255,6 @@ export default function NotificationsPage() {
           url: sendUrl.trim() || '/',
           createdBy: uid,
         });
-        console.log('[Send] Scheduled successfully, id:', id);
         toast.success(`Notifikasi dijadualkan (ID: ${id.slice(0, 6)}...)`);
       } else {
         console.log('[Send] Sending notification now...');
@@ -246,7 +266,7 @@ export default function NotificationsPage() {
           url: sendUrl.trim() || '/',
           createdBy: uid,
         });
-        console.log('[Send] Result:', result);
+        console.log('[Send] Result:', JSON.stringify(result));
         const total = result.sent + (result.failed || 0);
         if (total === 0) {
           toast.error('Tiada peranti berdaftar untuk menerima notifikasi. Pastikan pengguna telah membenarkan notifikasi.', { duration: 6000 });
@@ -287,10 +307,44 @@ export default function NotificationsPage() {
     try {
       await deleteNotification(id);
       toast.success('Notifikasi berjaya dipadam');
+      setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
       getNotificationStats().then(setStats).catch(() => {});
     } catch {
       toast.error('Gagal memadam notifikasi');
     }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === notifications.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(notifications.map(n => n.id!)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Padam ${selectedIds.size} notifikasi yang dipilih?`)) return;
+    setDeleting(true);
+    let deleted = 0;
+    for (const id of selectedIds) {
+      try {
+        await deleteNotification(id);
+        deleted++;
+      } catch { /* continue */ }
+    }
+    setSelectedIds(new Set());
+    setDeleting(false);
+    toast.success(`${deleted} notifikasi berjaya dipadam`);
+    getNotificationStats().then(setStats).catch(() => {});
   };
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
@@ -889,13 +943,54 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <>
+              {/* Select All / Bulk Delete toolbar */}
+              <div className="flex items-center justify-between bg-white rounded-lg border px-4 py-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notifications.length > 0 && selectedIds.size === notifications.length}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 text-emerald-600 rounded focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    {selectedIds.size > 0
+                      ? `${selectedIds.size} / ${notifications.length} dipilih`
+                      : 'Pilih Semua'}
+                  </span>
+                </label>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm"
+                  >
+                    {deleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                    {deleting ? 'Memadam...' : `Padam (${selectedIds.size})`}
+                  </button>
+                )}
+              </div>
+
               {/* Mobile cards */}
               <div className="sm:hidden space-y-3">
                 {notifications.map(n => (
-                  <div key={n.id} className="bg-white rounded-lg border p-4 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-semibold text-gray-900 text-sm">{n.title}</h4>
-                      {statusBadge(n.status)}
+                  <div key={n.id} className={`bg-white rounded-lg border p-4 space-y-2 ${selectedIds.has(n.id!) ? 'ring-2 ring-emerald-500 border-emerald-300' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(n.id!)}
+                        onChange={() => toggleSelect(n.id!)}
+                        className="h-4 w-4 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <h4 className="font-semibold text-gray-900 text-sm">{n.title}</h4>
+                          {statusBadge(n.status)}
+                        </div>
+                      </div>
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2">{n.body}</p>
                     <div className="flex items-center justify-between text-xs text-gray-500">
@@ -923,6 +1018,14 @@ export default function NotificationsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50 border-b">
+                        <th className="px-4 py-3 w-10">
+                          <input
+                            type="checkbox"
+                            checked={notifications.length > 0 && selectedIds.size === notifications.length}
+                            onChange={toggleSelectAll}
+                            className="h-4 w-4 text-emerald-600 rounded focus:ring-emerald-500"
+                          />
+                        </th>
                         <th className="text-left px-4 py-3 font-medium text-gray-600">Tarikh</th>
                         <th className="text-left px-4 py-3 font-medium text-gray-600">Tajuk</th>
                         <th className="text-left px-4 py-3 font-medium text-gray-600">Penerima</th>
@@ -933,7 +1036,15 @@ export default function NotificationsPage() {
                     </thead>
                     <tbody className="divide-y">
                       {notifications.map(n => (
-                        <tr key={n.id} className="hover:bg-gray-50">
+                        <tr key={n.id} className={`hover:bg-gray-50 ${selectedIds.has(n.id!) ? 'bg-emerald-50' : ''}`}>
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(n.id!)}
+                              onChange={() => toggleSelect(n.id!)}
+                              className="h-4 w-4 text-emerald-600 rounded focus:ring-emerald-500"
+                            />
+                          </td>
                           <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                             {formatTimestamp(n.createdAt)}
                           </td>
