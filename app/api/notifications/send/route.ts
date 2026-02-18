@@ -30,6 +30,10 @@ export async function POST(request: Request) {
     const db = getAdminFirestore();
     const link = url || '/';
 
+    const baseUrl = request.headers.get('origin')
+      || request.headers.get('x-forwarded-host')
+      || 'https://mymasjidapp.vercel.app';
+
     // DATA-ONLY payload — no `notification` key.
     // The service worker's raw `push` handler displays the notification.
     // This avoids Firebase SDK intercepting and suppressing our handler.
@@ -38,8 +42,8 @@ export async function POST(request: Request) {
       body,
       link,
       notifId: notifId || '',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/badge-72x72.png',
+      icon: baseUrl + '/icons/icon-192x192.png',
+      badge: baseUrl + '/icons/badge-72x72.png',
       tag: notifId || 'masjid-notification',
     };
 
@@ -52,15 +56,6 @@ export async function POST(request: Request) {
 
     const android = {
       priority: 'high' as const,
-      notification: {
-        title,
-        body,
-        icon: '/icons/icon-192x192.png',
-        color: '#10b981',
-        channelId: 'masjid-notifications',
-        defaultSound: true,
-        defaultVibrateTimings: true,
-      },
     };
 
     console.log('[FCM] Payload — data:', JSON.stringify(data));

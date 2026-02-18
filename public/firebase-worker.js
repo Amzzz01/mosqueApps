@@ -22,8 +22,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: fcmData.icon || '/icons/icon-192x192.png',
-      badge: fcmData.badge || '/icons/badge-72x72.png',
+      icon: fcmData.icon || (self.location.origin + '/icons/icon-192x192.png'),
+      badge: fcmData.badge || (self.location.origin + '/icons/badge-72x72.png'),
       data: { url: link, link },
       tag,
       renotify: true,

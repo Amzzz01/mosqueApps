@@ -83,8 +83,8 @@ export default function FCMProvider() {
         navigator.serviceWorker.ready.then((reg) => {
           reg.showNotification(title, {
             body,
-            icon: '/icons/icon-192x192.png',
-            badge: '/icons/badge-72x72.png',
+            icon: window.location.origin + '/icons/icon-192x192.png',
+            badge: window.location.origin + '/icons/badge-72x72.png',
             tag: msg?.data?.link || 'foreground-notification',
             data: { url: msg?.data?.link || '/', link: msg?.data?.link || '/' },
           } as NotificationOptions);

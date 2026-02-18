@@ -19,7 +19,8 @@
       "Bash(do echo \"=== Checking $file ===\" grep -r \"from.*$file\\\\|import.*$file\" --include=\"*.ts\" --include=\"*.tsx\" .)",
       "Bash(done)",
       "Bash(for file in \"PublicNav\" \"lib/utils\" \"lib/db/operation\" \"lib/firebase/index\")",
-      "Bash(do echo \"=== $file ===\")"
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(git commit:*)"
     ]
   }
 }

@@ -39,8 +39,8 @@ self.addEventListener('push', (event) => {
 
   const title = fcmData.title || fcmNotif.title || payload.title || 'MASJID AL-FALAH';
   const body = fcmData.body || fcmNotif.body || payload.body || '';
-  const icon = fcmData.icon || fcmNotif.icon || '/icons/icon-192x192.png';
-  const badge = fcmData.badge || fcmNotif.badge || '/icons/badge-72x72.png';
+  const icon = fcmData.icon || fcmNotif.icon || (self.location.origin + '/icons/icon-192x192.png');
+  const badge = fcmData.badge || fcmNotif.badge || (self.location.origin + '/icons/badge-72x72.png');
   const link = fcmData.link || fcmData.url || payload.fcmOptions?.link || '/';
   const tag = fcmData.tag || fcmData.notifId || fcmNotif.tag || 'masjid-notification';
 
