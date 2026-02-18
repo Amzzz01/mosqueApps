@@ -59,11 +59,32 @@ export async function requestNotificationPermission(): Promise<string | null> {
   }
 
   try {
-    // Use the PWA service worker (sw.js) which already includes Firebase
-    // messaging code via worker/index.js + importScripts in next.config.js.
-    // Single SW approach avoids scope conflicts on mobile.
-    console.log('[FCM] Getting PWA service worker registration (sw.js)...');
-    const swRegistration = await navigator.serviceWorker.ready;
+    // Wait for SW with timeout — Android Chrome can hang on .ready if SW is stuck
+    console.log('[FCM] Waiting for service worker ready (10s timeout)...');
+    const swRegistration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<ServiceWorkerRegistration>((_resolve, reject) => {
+        setTimeout(() => reject(new Error('SW ready timeout after 10s')), 10000);
+      }),
+    ]).catch(async (err) => {
+      console.warn('[FCM] SW ready timed out or failed, attempting manual registration:', err.message);
+      // Attempt manual registration as fallback
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      // Wait for it to activate
+      if (!reg.active) {
+        await new Promise<void>((resolve) => {
+          const sw = reg.installing || reg.waiting;
+          if (!sw) { resolve(); return; }
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'activated') resolve();
+          });
+          // Safety timeout — don't hang forever
+          setTimeout(resolve, 5000);
+        });
+      }
+      console.log('[FCM] Manual SW registration complete, scope:', reg.scope);
+      return reg;
+    });
     console.log('[FCM] Service worker ready, scope:', swRegistration.scope);
 
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
