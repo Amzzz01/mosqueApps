@@ -1,5 +1,6 @@
-// app/api/cron/hourly/route.ts
-// Runs every hour. Handles: prayer reminders, scheduled notifications,
+// app/api/cron/daily/route.ts
+// Runs once daily at 06:00 UTC (14:00 MYT) on Vercel Hobby plan.
+// Handles: prayer time summary, scheduled notifications,
 // activity reminders, and donation reminders.
 import { NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/firebase-admin';
@@ -30,12 +31,11 @@ function getMYTComponents(): MYTComponents {
 
   const get = (t: string) => parts.find(p => p.type === t)?.value ?? '0';
   const rawHour = parseInt(get('hour'));
-  // Intl with hour12:false can return 24 for midnight on some runtimes
-  const hour   = rawHour === 24 ? 0 : rawHour;
-  const minute = parseInt(get('minute'));
-  const year   = get('year');
-  const month  = get('month');
-  const day    = get('day');
+  const hour    = rawHour === 24 ? 0 : rawHour;
+  const minute  = parseInt(get('minute'));
+  const year    = get('year');
+  const month   = get('month');
+  const day     = get('day');
 
   return {
     hour,
@@ -48,11 +48,10 @@ function getMYTComponents(): MYTComponents {
 }
 
 /**
- * Format a "HH:MM" (24h) prayer time to Malaysian 12-hour format.
- * Returns e.g. "5:45 PG", "12:30 PTG", "7:15 MLM"
- * PG  = 12:00am–11:59am (hour 0–11)
- * PTG = 12:00pm–5:59pm  (hour 12–17)
- * MLM = 6:00pm–11:59pm  (hour 18–23)
+ * Format "HH:MM" (24h) to Malaysian 12-hour format.
+ * PG  = hours 0–11  (12:00am–11:59am)
+ * PTG = hours 12–17 (12:00pm–5:59pm)
+ * MLM = hours 18–23 (6:00pm–11:59pm)
  */
 function formatMYT12h(timeHHMM: string): string {
   const [h, m] = timeHHMM.split(':').map(Number);
@@ -70,7 +69,6 @@ export async function GET(request: Request) {
   try {
     const db = getAdminFirestore();
 
-    // Read notification settings once — shared by all checks below
     const settingsSnap = await db.collection('settings').doc('notifications').get();
     const settings = settingsSnap.data() || {};
 
@@ -83,75 +81,61 @@ export async function GET(request: Request) {
 
     const results: Record<string, unknown> = {};
 
-    // ─── A. Prayer Time Notifications (every hour) ───
+    // ─── A. Daily Prayer Times Summary ───
     if (settings.prayerNotifications) {
       const prayerZone: string = settings.prayerZone || 'KDH01';
-      const prayerTimes = await fetchPrayerTimes(prayerZone);
+      const logKey = `${mytDateStr}_daily`;
 
-      if (prayerTimes) {
-        const prayers = [
-          { key: 'fajr',    nameMs: 'Subuh',   time: prayerTimes.fajr },
-          { key: 'dhuhr',   nameMs: 'Zohor',   time: prayerTimes.dhuhr },
-          { key: 'asr',     nameMs: 'Asar',    time: prayerTimes.asr },
-          { key: 'maghrib', nameMs: 'Maghrib', time: prayerTimes.maghrib },
-          { key: 'isha',    nameMs: 'Isyak',   time: prayerTimes.isha },
-        ];
+      const sentLogSnap = await db.collection('settings').doc('prayerSentLog').get();
+      const sentLog: Record<string, boolean> = sentLogSnap.exists
+        ? (sentLogSnap.data() as Record<string, boolean>)
+        : {};
 
-        // Load today's sent log — keys are "YYYY-MM-DD_prayerKey"
-        const sentLogSnap = await db.collection('settings').doc('prayerSentLog').get();
-        const sentLog: Record<string, boolean> = sentLogSnap.exists
-          ? (sentLogSnap.data() as Record<string, boolean>)
-          : {};
-
-        const windowEnd = totalMin + 60;
-        let prayerSent = 0;
-
-        for (const prayer of prayers) {
-          const logKey = `${mytDateStr}_${prayer.key}`;
-          if (sentLog[logKey]) continue; // already sent today
-
-          const [ph, pm] = prayer.time.split(':').map(Number);
-          const prayerMin = ph * 60 + pm;
-
-          // Prayer falls within this hour's window
-          if (prayerMin >= totalMin && prayerMin < windowEnd) {
-            const formattedTime = formatMYT12h(prayer.time);
-
-            await fetch(`${baseUrl}/api/notifications/send`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-cron-secret': process.env.CRON_SECRET || '',
-              },
-              body: JSON.stringify({
-                title: '🕌 Peringatan Waktu Solat',
-                body: `Waktu ${prayer.nameMs} akan masuk pada ${formattedTime}. Bersedia untuk solat.`,
-                recipientType: 'all',
-                url: '/prayer-times',
-              }),
-            });
-
-            await db.collection('settings').doc('prayerSentLog').set(
-              { [logKey]: true },
-              { merge: true }
-            );
-
-            prayerSent++;
-          }
-        }
-
-        results.prayerNotifications = {
-          zone: prayerZone,
-          windowStart: totalMin,
-          windowEnd,
-          sent: prayerSent,
-        };
+      if (sentLog[logKey]) {
+        results.prayerNotifications = { skipped: true, reason: 'already sent today', logKey };
       } else {
-        results.prayerNotifications = { skipped: true, reason: 'JAKIM API unavailable' };
+        const prayerTimes = await fetchPrayerTimes(prayerZone);
+
+        if (prayerTimes) {
+          const prayers = [
+            { nameMs: 'Subuh',   time: prayerTimes.fajr },
+            { nameMs: 'Zohor',   time: prayerTimes.dhuhr },
+            { nameMs: 'Asar',    time: prayerTimes.asr },
+            { nameMs: 'Maghrib', time: prayerTimes.maghrib },
+            { nameMs: 'Isyak',   time: prayerTimes.isha },
+          ];
+
+          const body = prayers
+            .map(p => `${p.nameMs} ${formatMYT12h(p.time)}`)
+            .join(' | ');
+
+          await fetch(`${baseUrl}/api/notifications/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-cron-secret': process.env.CRON_SECRET || '',
+            },
+            body: JSON.stringify({
+              title: '🕌 Waktu Solat Hari Ini',
+              body,
+              recipientType: 'all',
+              url: '/prayer-times',
+            }),
+          });
+
+          await db.collection('settings').doc('prayerSentLog').set(
+            { [logKey]: true },
+            { merge: true }
+          );
+
+          results.prayerNotifications = { sent: true, zone: prayerZone, body };
+        } else {
+          results.prayerNotifications = { skipped: true, reason: 'JAKIM API unavailable' };
+        }
       }
     }
 
-    // ─── B. Scheduled Notifications (every hour, any time) ───
+    // ─── B. Scheduled Notifications (runs daily, any time) ───
     {
       const now = Timestamp.now();
       const scheduledSnap = await db
@@ -178,14 +162,13 @@ export async function GET(request: Request) {
           }),
         });
         const result = await res.json();
-        // If quiet hours active, leave as scheduled
         if (result.quietHours) continue;
         scheduledSent++;
       }
       results.scheduledNotifications = { processed: scheduledSnap.size, sent: scheduledSent };
     }
 
-    // ─── C. Activity Reminder — 1 Day Before (19:00 MYT) ───
+    // ─── C. Activity Reminder — 1 Day Before (fires at 19:00 MYT) ───
     if (mytHour === 19 && settings.eventNotifications && settings.eventReminder1Day) {
       const mytOffset = 8 * 60 * 60 * 1000;
       const nowUtc = new Date();
@@ -228,7 +211,7 @@ export async function GET(request: Request) {
       results.activityReminder1Day = { found: activitiesSnap.size, sent: sent1Day };
     }
 
-    // ─── D. Activity Reminder — Day Of (08:00 MYT) ───
+    // ─── D. Activity Reminder — Day Of (fires at 08:00 MYT) ───
     if (mytHour === 8 && settings.eventNotifications && settings.eventReminder1Hour) {
       const mytOffset = 8 * 60 * 60 * 1000;
       const nowUtc = new Date();
@@ -286,7 +269,7 @@ export async function GET(request: Request) {
       results.activityReminderDayOf = { found: activitiesSnap.size, sent: sentToday };
     }
 
-    // ─── E. Monthly Donation Reminder (09:00 MYT) ───
+    // ─── E. Monthly Donation Reminder (fires at 09:00 MYT) ───
     if (mytHour === 9 && settings.donationReminder) {
       const reminderDay: number = settings.donationReminderDay ?? 1;
 
@@ -335,7 +318,7 @@ export async function GET(request: Request) {
       results,
     });
   } catch (err) {
-    console.error('[cron/hourly] Error:', err);
+    console.error('[cron/daily] Error:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal error' },
       { status: 500 }
