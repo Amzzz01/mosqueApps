@@ -104,48 +104,72 @@ export async function testNotificationPermissions(): Promise<{
   };
 }
 
-export async function sendTestNotification(): Promise<boolean> {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    console.error('[Test] Notifications not supported');
-    return false;
-  }
-
-  if (Notification.permission === 'denied') {
-    console.error('[Test] Permission denied by user');
-    return false;
-  }
-
-  // If permission is 'default', request it first
-  if (Notification.permission === 'default') {
-    console.log('[Test] Permission is default, requesting...');
-    const result = await Notification.requestPermission();
-    if (result !== 'granted') {
-      console.error('[Test] Permission not granted after request:', result);
-      return false;
-    }
-  }
+export async function sendTestNotification(): Promise<{ success: boolean; logs: string[] }> {
+  const logs: string[] = [];
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    // Step 1: check permission
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      logs.push('✗ Notification API tidak disokong dalam pelayar ini');
+      return { success: false, logs };
+    }
+    const perm = Notification.permission;
+    logs.push(`Permission semasa: ${perm}`);
 
-    await registration.showNotification('MASJID AL-FALAH', {
-      body: 'Ini adalah notifikasi ujian. Jika anda melihat ini, notifikasi berfungsi dengan baik!',
-      icon: window.location.origin + '/icons/icon-192x192.png',
-      badge: window.location.origin + '/icons/badge-72x72.png',
-      tag: 'test-notification',
-      vibrate: [200, 100, 200],
-      requireInteraction: false,
-      silent: false,
-      timestamp: Date.now(),
-      data: { url: '/', test: true },
-      dir: 'ltr',
-      lang: 'ms-MY',
-    } as NotificationOptions);
+    if (perm === 'denied') {
+      logs.push('✗ Permission disekat — pengguna perlu benarkan notifikasi di tetapan pelayar');
+      return { success: false, logs };
+    }
 
-    console.log('[Test] Test notification sent');
-    return true;
+    // Step 2: get real FCM token via the standard permission + getToken flow
+    const { requestNotificationPermission } = await import('@/lib/firebase-messaging');
+    logs.push('Mendapatkan FCM token...');
+    const token = await requestNotificationPermission();
+    if (token) {
+      logs.push(`✓ Token diperoleh: ${token.slice(0, 20)}...${token.slice(-8)}`);
+    } else {
+      logs.push('✗ Token tidak diperoleh (null)');
+    }
+
+    // Step 3: no token — explain likely causes
+    if (!token) {
+      logs.push('Kemungkinan punca: VAPID key hilang atau tidak betul, SW tidak bersedia / stuck, atau permission disekat');
+      return { success: false, logs };
+    }
+
+    // Step 4: send via FCM API (same path as real notifications)
+    logs.push('Menghantar ke /api/notifications/send...');
+    const res = await fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Notifikasi Ujian',
+        body: 'Ini ujian melalui FCM — sama seperti notifikasi sebenar',
+        recipientType: 'specific',
+        recipientIds: [],
+        token,
+        url: '/',
+      }),
+    });
+
+    // Step 5: parse and log API response
+    const result = await res.json();
+    logs.push(`Status API: ${res.status}`);
+    logs.push(`Dihantar: ${result.sent ?? '?'}, Gagal: ${result.failed ?? '?'}, Jumlah: ${result.total ?? '?'}`);
+    if (result.message) {
+      logs.push(`Mesej: ${result.message}`);
+    }
+    if (result.errors?.length) {
+      for (const e of result.errors) {
+        logs.push(`Ralat token: code=${e.code} source=${e.source} cleaned=${e.cleaned}`);
+      }
+    }
+
+    // Step 6: return based on sent count
+    return { success: (result.sent ?? 0) > 0, logs };
+
   } catch (err) {
-    console.error('[Test] Failed:', err);
-    return false;
+    logs.push(`✗ Ralat tidak dijangka: ${err instanceof Error ? err.message : String(err)}`);
+    return { success: false, logs };
   }
 }

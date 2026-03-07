@@ -52,14 +52,8 @@ export async function POST(request: Request) {
       headers: {
         Urgency: 'high',
         TTL: '86400',
+        'content-available': '1',
       },
-      fcmOptions: {
-        link: baseUrl + (link !== '/' ? link : ''),
-      },
-    };
-
-    const android = {
-      priority: 'high' as const,
     };
 
     console.log('[FCM] Payload — data:', JSON.stringify(data));
@@ -78,7 +72,6 @@ export async function POST(request: Request) {
           topic,
           data,
           webpush,
-          android,
         });
         console.log('[FCM] Topic send response:', topicResponse);
         sentCount = 1;
@@ -169,7 +162,6 @@ export async function POST(request: Request) {
           tokens: batch,
           data,
           webpush,
-          android,
         });
 
         console.log(`[FCM] Batch ${batchNum}: success=${response.successCount}, failure=${response.failureCount}`);

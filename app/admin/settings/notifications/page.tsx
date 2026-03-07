@@ -195,11 +195,13 @@ export default function NotificationsPage() {
   };
 
   const handleTestNotification = async () => {
-    const success = await sendTestNotification();
+    const { success, logs } = await sendTestNotification();
+    console.log('[TestNotif]', logs.join('\n'));
     if (success) {
       toast.success('Notifikasi ujian berjaya dihantar');
     } else {
-      toast.error('Gagal menghantar notifikasi ujian. Semak kebenaran notifikasi.');
+      const reason = logs.findLast((l) => l.startsWith('✗')) ?? logs.at(-1) ?? '';
+      toast.error(`Gagal: ${reason}`, { duration: 6000 });
     }
   };
 
