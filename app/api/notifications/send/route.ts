@@ -13,6 +13,26 @@ interface TokenError {
   cleaned: boolean;
 }
 
+function isInQuietHours(startHHMM: string, endHHMM: string): boolean {
+  // Get current Malaysia time (UTC+8)
+  const nowUtc = new Date();
+  const myt = new Date(nowUtc.getTime() + 8 * 60 * 60 * 1000);
+  const currentMin = myt.getUTCHours() * 60 + myt.getUTCMinutes();
+
+  const [sh, sm] = startHHMM.split(':').map(Number);
+  const [eh, em] = endHHMM.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin   = eh * 60 + em;
+
+  if (startMin <= endMin) {
+    // Same-day range e.g. 09:00–17:00
+    return currentMin >= startMin && currentMin < endMin;
+  } else {
+    // Overnight range e.g. 22:00–06:00
+    return currentMin >= startMin || currentMin < endMin;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const reqBody = await request.json();
@@ -24,6 +44,39 @@ export async function POST(request: Request) {
         { error: 'Tajuk dan kandungan diperlukan' },
         { status: 400 }
       );
+    }
+
+    // ─── Quiet Hours Check ───
+    // Cron routes bypass quiet hours via x-cron-secret header
+    const cronSecret = request.headers.get('x-cron-secret');
+    const isCronBypass = cronSecret && cronSecret === process.env.CRON_SECRET;
+
+    if (!isCronBypass) {
+      const db = getAdminFirestore();
+      const settingsSnap = await db.collection('settings').doc('notifications').get();
+      const settings = settingsSnap.data() || {};
+
+      if (settings.quietHoursEnabled) {
+        const quietStart: string = settings.quietHoursStart || '22:00';
+        const quietEnd: string   = settings.quietHoursEnd   || '06:00';
+
+        if (isInQuietHours(quietStart, quietEnd)) {
+          console.log(`[API/notifications] Quiet hours active (${quietStart}–${quietEnd}), deferring`);
+          if (notifId) {
+            await db.collection('notifications').doc(notifId).update({
+              status: 'pending',
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          }
+          return NextResponse.json({
+            quietHours: true,
+            sent: 0,
+            failed: 0,
+            cleaned: 0,
+            message: `Waktu senyap aktif (${quietStart}–${quietEnd}). Notifikasi ditunda.`,
+          });
+        }
+      }
     }
 
     const messaging = getAdminMessaging();

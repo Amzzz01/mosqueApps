@@ -28,6 +28,7 @@ export interface NotificationData {
 export interface NotificationSettings {
   prayerNotifications: boolean;
   prayerReminderMinutes: number;
+  prayerZone?: string;
   announcementNotifications: boolean;
   eventNotifications: boolean;
   eventReminder1Day: boolean;
@@ -42,6 +43,7 @@ export interface NotificationSettings {
 export const DEFAULT_SETTINGS: NotificationSettings = {
   prayerNotifications: false,
   prayerReminderMinutes: 15,
+  prayerZone: 'KDH01',
   announcementNotifications: true,
   eventNotifications: true,
   eventReminder1Day: true,

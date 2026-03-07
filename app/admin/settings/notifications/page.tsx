@@ -16,6 +16,7 @@ import {
   subscribeToNotifications, deleteNotification,
   getNotificationStats,
 } from '@/lib/notifications';
+import { MALAYSIA_ZONES } from '@/lib/api/jakim';
 import NotificationPreview from '@/components/admin/NotificationPreview';
 import { auth } from '@/lib/firebase/config';
 import { requestNotificationPermission, saveFCMToken, getPermissionStatus } from '@/lib/firebase-messaging';
@@ -440,16 +441,34 @@ export default function NotificationsPage() {
                   </button>
                 </div>
                 {settings.prayerNotifications && (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Minit sebelum waktu solat</label>
-                    <input
-                      type="number"
-                      value={settings.prayerReminderMinutes}
-                      onChange={e => updateSetting('prayerReminderMinutes', Number(e.target.value))}
-                      min={5}
-                      max={60}
-                      className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                    />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Minit sebelum waktu solat</label>
+                      <input
+                        type="number"
+                        value={settings.prayerReminderMinutes}
+                        onChange={e => updateSetting('prayerReminderMinutes', Number(e.target.value))}
+                        min={5}
+                        max={60}
+                        className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Zon Waktu Solat (JAKIM)</label>
+                      <select
+                        value={settings.prayerZone ?? 'KDH01'}
+                        onChange={e => updateSetting('prayerZone', e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                      >
+                        {Object.entries(MALAYSIA_ZONES).map(([state, zones]) => (
+                          <optgroup key={state} label={state}>
+                            {Object.entries(zones).map(([code, label]) => (
+                              <option key={code} value={code}>{code} — {label}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 )}
               </div>
