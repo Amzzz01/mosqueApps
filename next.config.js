@@ -6,9 +6,15 @@ const withPWA = require('next-pwa')({
   fallbacks: {
     document: '/offline',
   },
-  // No importScripts needed — worker/index.js uses raw push event
-  // listeners instead of Firebase compat SDK (avoids load-order bug).
   publicExcludes: ['!firebase-messaging-sw.js'],
+  buildExcludes: [
+    /app-build-manifest\.json$/,
+    /middleware-manifest\.json$/,
+    /middleware-build-manifest\.js$/,
+    /react-loadable-manifest\.json$/,
+    /server\/.*\.js$/,
+    /\.map$/,
+  ],
 });
 
 /** @type {import('next').NextConfig} */
