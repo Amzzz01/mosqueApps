@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Bell, Megaphone, BookOpen, Heart, ImageIcon, UserPlus, Phone, ChevronRight } from 'lucide-react';
+import { Bell, Megaphone, BookOpen, Heart, ImageIcon, UserPlus, Phone, ChevronRight, UserRoundCog, Download } from 'lucide-react';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { fetchPrayerTimes, PrayerTimes } from '@/lib/api/jakim';
@@ -101,6 +101,8 @@ export default function MobileHomeDashboard() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [announcementLoading, setAnnouncementLoading] = useState(true);
   const [, setTick] = useState(0);
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     fetchPrayerTimes('KDH01').then(data => {
@@ -114,6 +116,35 @@ export default function MobileHomeDashboard() {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // PWA install prompt
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    });
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(deferredPrompt as any).prompt();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (deferredPrompt as any).userChoice;
+    setDeferredPrompt(null);
+  };
 
   useEffect(() => {
     async function loadAnnouncement() {
@@ -151,12 +182,21 @@ export default function MobileHomeDashboard() {
           <p className="text-gray-400 text-xs">{getMalayDate()}</p>
           <p className="text-gray-50 font-bold text-base">Masjid Al-Falah</p>
         </div>
-        <Link
-          href="/notifikasi"
-          className="w-9 h-9 rounded-full bg-gray-700 border border-gray-600 flex items-center justify-center"
-        >
-          <Bell className="w-5 h-5 text-cyan-100" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/login"
+            className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center border border-gray-600"
+            title="Admin Login"
+          >
+            <UserRoundCog className="w-4 h-4 text-gray-300" />
+          </Link>
+          <Link
+            href="/notifikasi"
+            className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center border border-gray-600"
+          >
+            <Bell className="w-4 h-4 text-cyan-100" />
+          </Link>
+        </div>
       </div>
 
       {/* B. Prayer Time Hero Card */}
@@ -219,6 +259,14 @@ export default function MobileHomeDashboard() {
                 </div>
               ))}
             </div>
+            {/* Link to full prayer times page */}
+            <Link
+              href="/prayer-times"
+              className="mt-3 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-700 text-gray-400 text-xs font-medium active:bg-gray-800 transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+              Lihat Waktu Solat Penuh & Tetapan Zon
+            </Link>
           </>
         ) : (
           <p className="text-gray-500 text-sm text-center py-4">Waktu solat tidak tersedia</p>
@@ -245,6 +293,19 @@ export default function MobileHomeDashboard() {
               </Link>
             );
           })}
+          {!isInstalled && (
+            <div
+              onClick={handleInstall}
+              className={`bg-indigo-50 rounded-2xl p-3 text-center cursor-pointer active:scale-95 transition-transform ${!deferredPrompt ? 'opacity-60' : ''}`}
+            >
+              <div className="w-8 h-8 bg-indigo-600 rounded-xl mx-auto mb-1.5 flex items-center justify-center">
+                <Download className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-[10px] text-indigo-900 font-semibold leading-tight">
+                Pasang App
+              </span>
+            </div>
+          )}
         </div>
 
         {/* C2. Latest Announcement */}

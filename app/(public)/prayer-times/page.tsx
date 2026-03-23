@@ -7,6 +7,7 @@ import PrayerTimeCard from '@/components/public/PrayerTimeCard';
 import NextPrayerCountdown from '@/components/public/NextPrayerCountdown';
 import ZoneSelector from '@/components/public/ZoneSelector';
 import { getZoneByCode, DEFAULT_ZONE } from '@/lib/zones';
+import MobilePrayerTimesView from '@/components/public/MobilePrayerTimesView';
 
 const STORAGE_KEY = 'selected_prayer_zone';
 
@@ -57,40 +58,46 @@ export default function PrayerTimesPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <Loader2 className="h-16 w-16 text-emerald-600 mx-auto mb-4 animate-spin" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Memuatkan waktu solat...
-          </h2>
-          <p className="text-gray-600">
-            Sila tunggu sebentar
-          </p>
+      <>
+        <MobilePrayerTimesView />
+        <div className="hidden lg:flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="text-center">
+            <Loader2 className="h-16 w-16 text-emerald-600 mx-auto mb-4 animate-spin" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Memuatkan waktu solat...
+            </h2>
+            <p className="text-gray-600">
+              Sila tunggu sebentar
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Error state
   if (error || !prayerTimes) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Tidak dapat memuat waktu solat
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Sila cuba lagi sebentar.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-          >
-            Cuba Lagi
-          </button>
+      <>
+        <MobilePrayerTimesView />
+        <div className="hidden lg:flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="text-center">
+            <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Tidak dapat memuat waktu solat
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Sila cuba lagi sebentar.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              Cuba Lagi
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -108,7 +115,9 @@ export default function PrayerTimesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <>
+      <MobilePrayerTimesView />
+      <div className="hidden lg:block min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -204,5 +213,6 @@ export default function PrayerTimesPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
