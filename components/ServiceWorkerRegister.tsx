@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    // next-pwa doesn't generate sw.js in development — skip registration
+    if (process.env.NODE_ENV === 'development') return;
 
     const registerSW = async () => {
       try {

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import NotificationPermission from '@/components/NotificationPermission';
 import FCMProvider from '@/components/FCMProvider';
+import MobileBottomNav from '@/components/public/MobileBottomNav';
 import { Building2, Phone, MapPin, Mail, Clock, MessageSquare } from 'lucide-react';
 
 export default function PublicLayout({
@@ -11,11 +12,13 @@ export default function PublicLayout({
 }) {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Navigation */}
-      <Navigation />
+      {/* Navigation - desktop only */}
+      <div className="hidden lg:block">
+        <Navigation />
+      </div>
 
-      {/* Spacer to prevent content from hiding behind fixed header */}
-      <div className="h-16 lg:h-[72px]" />
+      {/* Spacer - desktop only */}
+      <div className="hidden lg:block h-16 lg:h-[72px]" />
 
       {/* Main Content */}
       <main className="flex-grow">
@@ -27,8 +30,9 @@ export default function PublicLayout({
       {/* Permission prompt UI (bell button) */}
       <NotificationPermission />
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-auto">
+      {/* Footer - desktop only */}
+      <div className="hidden lg:block mt-auto">
+      <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
             {/* About Section */}
@@ -138,6 +142,9 @@ export default function PublicLayout({
           </div>
         </div>
       </footer>
+      </div>
+
+      <MobileBottomNav />
     </div>
   );
 }
