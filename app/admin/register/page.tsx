@@ -67,26 +67,29 @@ export default function AdminRegisterPage() {
 
       {/* WHITE CARD */}
       <div className="bg-white rounded-t-2xl -mt-3 relative flex-1 px-5 pt-5 pb-8">
-        {success ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <CheckCircle className="w-14 h-14 text-green-500 mb-4" />
-            <h3 className="text-lg font-extrabold text-gray-900">Pendaftaran Berjaya!</h3>
-            <p className="text-sm text-gray-400 mt-2 mb-6">
-              Akaun anda telah didaftarkan.<br />Sila log masuk untuk meneruskan.
-            </p>
-            <button
-              onClick={() => router.push('/admin/login')}
-              className="w-full py-3 rounded-xl font-bold text-sm text-white shadow-lg shadow-teal-500/30"
-              style={{ background: 'linear-gradient(135deg,#0f766e,#0e7490)' }}
-            >
-              Pergi ke Log Masuk
-            </button>
+        <h2 className="text-lg font-extrabold text-gray-900 mb-0.5">Buat Akaun</h2>
+        <p className="text-xs text-gray-400 mb-5">Isi maklumat pentadbir baru</p>
+
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3 mb-5">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-green-700">Pendaftaran Berjaya</p>
+              <p className="text-xs text-gray-500 mt-0.5">Akaun anda telah didaftarkan. Sila log masuk untuk meneruskan.</p>
+            </div>
           </div>
+        )}
+
+        {success ? (
+          <button
+            onClick={() => router.push('/admin/login')}
+            className="w-full py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center shadow-lg shadow-teal-500/30"
+            style={{ background: 'linear-gradient(135deg,#0f766e,#0e7490)' }}
+          >
+            Pergi ke Log Masuk
+          </button>
         ) : (
           <>
-            <h2 className="text-lg font-extrabold text-gray-900 mb-0.5">Buat Akaun</h2>
-            <p className="text-xs text-gray-400 mb-5">Isi maklumat pentadbir baru</p>
-
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2.5 mb-4">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -95,6 +98,22 @@ export default function AdminRegisterPage() {
             )}
 
             <form onSubmit={handleSubmit}>
+              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Kunci Pendaftaran</label>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100">
+                <KeyRound className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <input
+                  type="password"
+                  required
+                  value={registrationKey}
+                  onChange={(e) => setRegistrationKey(e.target.value)}
+                  placeholder="Masukkan kunci rahsia"
+                  disabled={loading}
+                  className="flex-1 bg-transparent border-0 border-none outline-none ring-0 focus:ring-0 focus:outline-none focus:border-0 p-0 text-sm text-slate-700 font-medium placeholder:text-slate-300"
+                  style={{ WebkitBoxShadow: '0 0 0 1000px #f9fafb inset', WebkitTextFillColor: '#334155', boxShadow: 'none', border: 'none', outline: 'none' }}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1 mb-3">Dapatkan kod ini daripada pentadbir utama</p>
+
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Nama Penuh</label>
               <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 mb-3 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100">
                 <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -145,7 +164,7 @@ export default function AdminRegisterPage() {
               </div>
 
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Sahkan Kata Laluan</label>
-              <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 mb-3 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 mb-5 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-100">
                 <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -163,28 +182,13 @@ export default function AdminRegisterPage() {
                 </button>
               </div>
 
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Kunci Pendaftaran</label>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5 mb-5 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
-                <KeyRound className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <input
-                  type="password"
-                  required
-                  value={registrationKey}
-                  onChange={(e) => setRegistrationKey(e.target.value)}
-                  placeholder="Masukkan kunci rahsia"
-                  disabled={loading}
-                  className="flex-1 bg-transparent border-0 border-none outline-none ring-0 focus:ring-0 focus:outline-none focus:border-0 p-0 text-sm text-slate-700 font-medium placeholder:text-slate-300"
-                  style={{ WebkitBoxShadow: '0 0 0 1000px #fffbeb inset', WebkitTextFillColor: '#334155', boxShadow: 'none', border: 'none', outline: 'none' }}
-                />
-              </div>
-
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg,#0f766e,#0e7490)' }}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Daftar Akaun'}
+                {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /><span>Mendaftar...</span></>) : 'Daftar Sekarang'}
               </button>
             </form>
 

@@ -119,11 +119,11 @@ export default function AdminLoginPage() {
               className="w-full py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg,#0f766e,#0e7490)' }}
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Log Masuk'}
+              {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /><span>Log masuk...</span></>) : 'Log Masuk'}
             </button>
           </form>
 
-          <div className="border-t border-gray-100 my-5" />
+          <div className="border-t border-gray-100 my-4" />
 
           <button
             onClick={() => router.push('/')}
@@ -132,6 +132,11 @@ export default function AdminLoginPage() {
             <ChevronLeft className="w-3.5 h-3.5" />
             Kembali ke Laman Utama
           </button>
+
+          <p className="text-center text-xs text-gray-400 mt-3">
+            Pentadbir baru?{' '}
+            <Link href="/admin/register" className="text-teal-600 font-semibold">Daftar</Link>
+          </p>
         </div>
       </div>
 

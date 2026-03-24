@@ -54,10 +54,10 @@ export default function ForgotPasswordPage() {
 
         {success ? (
           <>
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start gap-2.5 mb-5">
-              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3 mb-5">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-green-700">Email dihantar!</p>
+                <p className="text-sm font-semibold text-green-700">Email Dihantar!</p>
                 <p className="text-xs text-gray-500 mt-0.5">Semak inbox anda dan ikut arahan untuk reset kata laluan.</p>
               </div>
             </div>
