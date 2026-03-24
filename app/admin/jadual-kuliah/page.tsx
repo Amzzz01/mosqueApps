@@ -6,8 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   Plus, Edit, Trash2, Search, Filter, CheckCircle, XCircle,
-  BookOpen, GripVertical, Palette, Tag,
+  BookOpen, GripVertical, Palette, Tag, Users,
 } from 'lucide-react';
+import MobileAdminHeader from '@/components/admin/MobileAdminHeader';
+import { signOutAdmin } from '@/lib/auth';
 import {
   getAllJadualKuliah, deleteJadualKuliah, toggleJadualKuliahStatus, updateJadualSequences,
   getAllKategori, createKategori, updateKategori, deleteKategori, updateKategoriSequences,
@@ -378,19 +380,234 @@ export default function JadualKuliahListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent" />
-          <p className="mt-4 text-gray-600">Memuatkan jadual kuliah...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="relative">
+
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
+
+        {/* Mobile Header */}
+        <MobileAdminHeader
+          title="Jadual Kuliah"
+          subtitle={activeTab === 'jadual' ? `${filtered.length} kuliah` : `${kategoriList.length} kategori`}
+          onLogout={async () => {
+            if (window.confirm('Adakah anda pasti untuk log keluar?')) {
+              toast.success('Log keluar berjaya');
+              try { await signOutAdmin(); } catch {}
+            }
+          }}
+        />
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
+
+          {/* Tabs */}
+          <div className="flex bg-slate-200 rounded-xl p-1">
+            {(['jadual', 'kategori'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 h-7 rounded-lg text-[10px] font-semibold transition-all ${
+                  activeTab === tab
+                    ? 'bg-white text-[#0d7a6b] shadow-sm'
+                    : 'text-slate-500'
+                }`}
+              >
+                {tab === 'jadual' ? 'Jadual Kuliah' : 'Kategori'}
+              </button>
+            ))}
+          </div>
+
+          {/* ── JADUAL TAB ── */}
+          {activeTab === 'jadual' && (
+            <>
+              {/* Day filter chips */}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {['Semua', ...DAYS].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setDayFilter(d === 'Semua' ? 'all' : d)}
+                    className={`flex-shrink-0 h-7 px-3 rounded-full text-[10px] font-semibold border transition-colors ${
+                      (d === 'Semua' && dayFilter === 'all') || dayFilter === d
+                        ? 'bg-[#0d7a6b] text-white border-[#0d7a6b]'
+                        : 'bg-white text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    {d === 'Semua' ? 'Semua Hari' : d}
+                  </button>
+                ))}
+              </div>
+
+              {/* Kuliah cards */}
+              {loading ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-32 bg-white rounded-2xl animate-pulse" />
+                  ))}
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 text-center">
+                  <BookOpen size={32} className="text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-400">Tiada kuliah dijumpai</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map((item) => {
+                    const timeStr = formatTime(item);
+                    const hasPoster = !!item.posterUrl;
+                    return (
+                      <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+
+                        {/* Poster strip if exists */}
+                        {hasPoster ? (
+                          <div className="relative w-full">
+                            <Image
+                              src={item.posterUrl!}
+                              alt={item.title}
+                              width={800}
+                              height={600}
+                              className="w-full h-auto"
+                              sizes="100vw"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            <div className="absolute top-2 right-2 flex gap-1.5">
+                              <Link
+                                href={`/admin/jadual-kuliah/${item.id}/edit`}
+                                className="w-7 h-7 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center"
+                              >
+                                <Edit size={12} className="text-white" />
+                              </Link>
+                              <button
+                                onClick={() => handleDelete(item.id!, item.title)}
+                                className="w-7 h-7 rounded-lg bg-red-500/35 backdrop-blur-sm flex items-center justify-center"
+                              >
+                                <Trash2 size={12} className="text-white" />
+                              </button>
+                            </div>
+                            <div className="absolute bottom-2 left-3 right-14">
+                              <p className="text-white text-xs font-bold leading-tight line-clamp-2 drop-shadow">{item.title}</p>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {/* Card body */}
+                        <div className="px-3 py-2.5">
+                          {!hasPoster && (
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-start gap-2 flex-1 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <BookOpen size={16} className="text-[#0d7a6b]" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-slate-900 leading-tight">{item.title}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-1.5 flex-shrink-0">
+                                <Link
+                                  href={`/admin/jadual-kuliah/${item.id}/edit`}
+                                  className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center"
+                                >
+                                  <Edit size={12} className="text-[#0d7a6b]" />
+                                </Link>
+                                <button
+                                  onClick={() => handleDelete(item.id!, item.title)}
+                                  className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center"
+                                >
+                                  <Trash2 size={12} className="text-red-500" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Ustaz */}
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1 mb-2">
+                            <Users size={10} />
+                            {item.ustaz}
+                          </p>
+
+                          {/* Badges */}
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="h-5 px-2 rounded-full text-[9px] font-semibold bg-blue-50 text-blue-700 flex items-center">{item.day}</span>
+                            <span className="h-5 px-2 rounded-full text-[9px] font-semibold bg-purple-50 text-purple-700 flex items-center">{timeStr}</span>
+                            {item.category && (
+                              <span className="h-5 px-2 rounded-full text-[9px] font-semibold bg-teal-50 text-teal-700 flex items-center">{item.category}</span>
+                            )}
+                            <span className={`h-5 px-2 rounded-full text-[9px] font-semibold flex items-center ${
+                              item.isActive ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
+                            }`}>
+                              {item.isActive ? 'Aktif' : 'Tidak Aktif'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── KATEGORI TAB ── */}
+          {activeTab === 'kategori' && (
+            <div className="space-y-2">
+              {kategoriList.length === 0 ? (
+                <div className="bg-white rounded-2xl p-8 text-center">
+                  <Tag size={28} className="text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-400">Tiada kategori</p>
+                </div>
+              ) : (
+                kategoriList.map((kat) => (
+                  <div key={kat.id} className="bg-white rounded-2xl px-3 py-3 flex items-center gap-3 shadow-sm">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: kat.color }} />
+                    <p className="flex-1 text-sm font-semibold text-slate-800">{kat.name}</p>
+                    <span className={`h-5 px-2 rounded-full text-[9px] font-semibold flex items-center ${
+                      kat.isActive ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {kat.isActive ? 'Aktif' : 'Tidak Aktif'}
+                    </span>
+                    <button onClick={() => openKatForm(kat)} className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                      <Edit size={12} className="text-[#0d7a6b]" />
+                    </button>
+                    <button onClick={() => handleKatDelete(kat.id!, kat.name)} className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                      <Trash2 size={12} className="text-red-500" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+        </div>
+
+        {/* FAB */}
+        <Link
+          href={activeTab === 'jadual' ? '/admin/jadual-kuliah/new' : '#'}
+          onClick={activeTab === 'kategori' ? (e) => { e.preventDefault(); openKatForm(); } : undefined}
+          className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
+        >
+          <Plus size={16} className="text-white" />
+          <span className="text-white text-xs font-bold">
+            {activeTab === 'jadual' ? 'Tambah Kuliah' : 'Tambah Kategori'}
+          </span>
+        </Link>
+
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent" />
+              <p className="mt-4 text-gray-600">Memuatkan jadual kuliah...</p>
+            </div>
+          </div>
+        ) : (
+        <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -657,6 +874,10 @@ export default function JadualKuliahListPage() {
           )}
         </div>
       )}
+        </div>
+        )}
+      </div>
+
     </div>
   );
 }

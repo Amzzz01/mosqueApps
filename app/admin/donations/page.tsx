@@ -6,11 +6,13 @@ import Link from 'next/link';
 import { collection, query, orderBy, getDocs, Timestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Donation } from '@/types';
-import { Plus, Download, DollarSign, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
+import { Plus, Download, DollarSign, TrendingUp, Calendar, Edit, Trash2, Users } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { ms } from 'date-fns/locale';
 import toast from 'react-hot-toast';
+import MobileAdminHeader from '@/components/admin/MobileAdminHeader';
+import { signOutAdmin } from '@/lib/auth';
 
 // Helper function to convert Date | Timestamp to Date
 const toDate = (dateValue: Date | Timestamp): Date => {
@@ -206,19 +208,155 @@ export default function DonationsPage() {
     return labels[method] || method;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Memuatkan data derma...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 space-y-6">
+    <div className="relative">
+
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
+
+        {/* Mobile Header */}
+        <MobileAdminHeader
+          title="Pengurusan Derma"
+          subtitle={`${filteredDonations.length} rekod dijumpai`}
+          onLogout={async () => {
+            if (window.confirm('Adakah anda pasti untuk log keluar?')) {
+              toast.success('Log keluar berjaya');
+              try { await signOutAdmin(); } catch {}
+            }
+          }}
+        />
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
+
+          {/* Stat Cards 2x2 */}
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-white rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Jumlah Terkumpul', value: formatCurrency(stats.total), icon: DollarSign, iconBg: 'bg-teal-50', iconColor: 'text-teal-600', badge: '+23%' },
+                { label: 'Bulan Ini', value: formatCurrency(stats.thisMonth), icon: TrendingUp, iconBg: 'bg-blue-50', iconColor: 'text-blue-600', badge: '+8%' },
+                { label: 'Tahun Ini', value: formatCurrency(stats.thisYear), icon: Calendar, iconBg: 'bg-purple-50', iconColor: 'text-purple-600', badge: null },
+                { label: 'Hari Ini', value: formatCurrency(stats.today), icon: Users, iconBg: 'bg-amber-50', iconColor: 'text-amber-600', badge: null },
+              ].map((s, i) => {
+                const Icon = s.icon;
+                return (
+                  <div key={i} className="bg-white rounded-2xl p-3 shadow-sm">
+                    <div className={`w-8 h-8 rounded-xl ${s.iconBg} flex items-center justify-center mb-2`}>
+                      <Icon size={15} className={s.iconColor} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-0.5">{s.label}</p>
+                    <p className="text-sm font-extrabold text-slate-900 leading-tight">{s.value}</p>
+                    {s.badge && (
+                      <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full mt-1 inline-block">↑ {s.badge}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Section header */}
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Senarai Derma</p>
+            <button onClick={exportToCSV} className="text-[10px] text-[#0d7a6b] font-semibold">Eksport →</button>
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {[
+              { label: 'Semua', value: 'all' },
+              { label: 'Hari Ini', value: 'today' },
+              { label: 'Bulan Ini', value: 'month' },
+              { label: 'Tahun Ini', value: 'year' },
+            ].map(f => (
+              <button
+                key={f.value}
+                onClick={() => setDateFilter(f.value as any)}
+                className={`flex-shrink-0 h-7 px-3 rounded-full text-[10px] font-semibold border transition-colors ${
+                  dateFilter === f.value
+                    ? 'bg-[#0d7a6b] text-white border-[#0d7a6b]'
+                    : 'bg-white text-slate-500 border-slate-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Donation cards */}
+          {loading ? (
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-white rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : filteredDonations.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center">
+              <DollarSign size={32} className="text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">Tiada rekod derma</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredDonations.map((donation) => {
+                const name = donation.donorName || 'Tanpa Nama';
+                const initial = name.charAt(0).toUpperCase();
+                const bgColors = ['bg-teal-50', 'bg-blue-50', 'bg-purple-50', 'bg-pink-50', 'bg-amber-50'];
+                const textColors = ['text-teal-600', 'text-blue-600', 'text-purple-600', 'text-pink-600', 'text-amber-600'];
+                const idx = name.charCodeAt(0) % 5;
+                return (
+                  <div key={donation.id} className="bg-white rounded-2xl px-3 py-3 flex items-center gap-3 shadow-sm">
+                    <div className={`w-9 h-9 rounded-xl ${bgColors[idx]} flex items-center justify-center flex-shrink-0`}>
+                      <span className={`text-sm font-bold ${textColors[idx]}`}>{initial}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-900 truncate">{name}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {donation.type || 'Umum'} · {donation.date ? format(toDate(donation.date), 'dd MMM yyyy') : '-'}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-extrabold text-[#0d7a6b]">{formatCurrency(donation.amount)}</p>
+                      <p className="text-[9px] text-slate-400 mt-0.5">{donation.paymentMethod || 'Tunai'}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* FAB */}
+        <Link
+          href="/admin/donations/new"
+          className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
+        >
+          <Plus size={16} className="text-white" />
+          <span className="text-white text-xs font-bold">Rekod Baru</span>
+        </Link>
+
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent"></div>
+              <p className="mt-4 text-gray-600">Memuatkan data derma...</p>
+            </div>
+          </div>
+        ) : (
+        <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -389,7 +527,11 @@ export default function DonationsPage() {
             )}
           </tbody>
         </table>
+        </div>
+        </div>
+        )}
       </div>
+
     </div>
   );
 }

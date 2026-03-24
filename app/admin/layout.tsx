@@ -61,6 +61,12 @@ export default function AdminLayout({
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const handler = () => setMobileOpen(prev => !prev);
+    window.addEventListener('toggle-admin-sidebar', handler);
+    return () => window.removeEventListener('toggle-admin-sidebar', handler);
+  }, []);
+
   // Check if current page is a public admin page (no auth required)
   const isPublicAdminPage = pathname === '/admin/login' || pathname === '/admin/forgot-password' || pathname === '/admin/register';
 
