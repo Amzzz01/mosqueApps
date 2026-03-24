@@ -1,6 +1,8 @@
 // app/admin/aktiviti/new/page.tsx
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';

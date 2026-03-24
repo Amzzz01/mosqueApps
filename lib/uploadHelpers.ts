@@ -5,7 +5,6 @@ import {
   getDownloadURL,
   deleteObject,
 } from 'firebase/storage';
-import { getAuth } from 'firebase/auth';
 import { storage } from '@/lib/firebase/config';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -56,17 +55,6 @@ export async function uploadFile(
   const validationError = validateFile(file);
   if (validationError) {
     throw new Error(validationError);
-  }
-
-  // Ensure user is authenticated and token is fresh
-  const currentUser = getAuth().currentUser;
-  if (!currentUser) {
-    throw new Error('Sesi telah tamat. Sila log masuk semula.');
-  }
-  try {
-    await currentUser.getIdToken(true);
-  } catch {
-    // ignore — proceed with existing token
   }
 
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
