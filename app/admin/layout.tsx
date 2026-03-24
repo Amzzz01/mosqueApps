@@ -8,8 +8,41 @@ import { signOutAdmin } from '@/lib/auth';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import ProtectedRoute from '@/components/admin/ProtectedRoute';
 import FCMProvider from '@/components/FCMProvider';
-import { Menu, Building2, LogOut } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+function MosqueIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Main dome */}
+      <path d="M12 3 C9 3 7 5 7 7.5 L7 9 L17 9 L17 7.5 C17 5 15 3 12 3 Z" />
+      {/* Small side domes */}
+      <path d="M5 9 C3.5 9 2.5 10 2.5 11.5 L2.5 13 L7 13 L7 9 Z" />
+      <path d="M19 9 C20.5 9 21.5 10 21.5 11.5 L21.5 13 L17 13 L17 9 Z" />
+      {/* Main body */}
+      <rect x="4" y="13" width="16" height="8" rx="0.5" />
+      {/* Door arch */}
+      <path d="M10 21 L10 17 C10 15.9 10.9 15 12 15 C13.1 15 14 15.9 14 17 L14 21" />
+      {/* Minaret left */}
+      <rect x="1" y="11" width="2" height="10" rx="0.5" />
+      <path d="M1 11 L1.5 9 L2 11" />
+      {/* Minaret right */}
+      <rect x="21" y="11" width="2" height="10" rx="0.5" />
+      <path d="M21 11 L21.5 9 L22 11" />
+      {/* Crescent on top */}
+      <path d="M12 1.5 C11 1.5 10.3 2.1 10 3 C10.6 2.8 11.3 2.8 12 3 C12.7 2.8 13.4 2.8 14 3 C13.7 2.1 13 1.5 12 1.5 Z" />
+    </svg>
+  );
+}
 
 const SIDEBAR_KEY = 'admin-sidebar-collapsed';
 
@@ -116,7 +149,7 @@ export default function AdminLayout({
 
                   {/* Logo & Title */}
                   <div className="flex items-center gap-2.5">
-                    <Building2 className="w-7 h-7" />
+                    <MosqueIcon className="w-7 h-7" />
                     <div>
                       <p className="text-white font-bold text-base leading-tight">Al-Falah</p>
                       <p className="text-white/60 text-[9px] leading-tight">Sistem Pengurusan Masjid</p>

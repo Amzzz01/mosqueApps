@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
-  Building2,
   X,
   ChevronsLeft,
   ChevronsRight,
@@ -20,7 +19,41 @@ import {
   ImageIcon,
   Bell,
   Pencil,
+  Shield,
 } from 'lucide-react';
+
+function MosqueIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Main dome */}
+      <path d="M12 3 C9 3 7 5 7 7.5 L7 9 L17 9 L17 7.5 C17 5 15 3 12 3 Z" />
+      {/* Small side domes */}
+      <path d="M5 9 C3.5 9 2.5 10 2.5 11.5 L2.5 13 L7 13 L7 9 Z" />
+      <path d="M19 9 C20.5 9 21.5 10 21.5 11.5 L21.5 13 L17 13 L17 9 Z" />
+      {/* Main body */}
+      <rect x="4" y="13" width="16" height="8" rx="0.5" />
+      {/* Door arch */}
+      <path d="M10 21 L10 17 C10 15.9 10.9 15 12 15 C13.1 15 14 15.9 14 17 L14 21" />
+      {/* Minaret left */}
+      <rect x="1" y="11" width="2" height="10" rx="0.5" />
+      <path d="M1 11 L1.5 9 L2 11" />
+      {/* Minaret right */}
+      <rect x="21" y="11" width="2" height="10" rx="0.5" />
+      <path d="M21 11 L21.5 9 L22 11" />
+      {/* Crescent on top */}
+      <path d="M12 1.5 C11 1.5 10.3 2.1 10 3 C10.6 2.8 11.3 2.8 12 3 C12.7 2.8 13.4 2.8 14 3 C13.7 2.1 13 1.5 12 1.5 Z" />
+    </svg>
+  );
+}
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -112,7 +145,7 @@ export default function AdminSidebar({
             onClick={handleNavClick}
           >
             <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-5 h-5 text-white" />
+              <MosqueIcon className="w-5 h-5 text-white" />
             </div>
             <div className={`transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>
               <h2 className="font-bold text-sm whitespace-nowrap">Al-Falah</h2>
@@ -295,6 +328,19 @@ export default function AdminSidebar({
             <Bell className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Notifikasi</span>
           </Link>
+
+          {/* Pengurusan Admin — super_admin only */}
+          {user?.role === 'super_admin' && (
+            <Link
+              href="/admin/pengurusan-admin"
+              onClick={handleNavClick}
+              className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/pengurusan-admin') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+              title={collapsed ? 'Pengurusan Admin' : undefined}
+            >
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Pengurusan Admin</span>
+            </Link>
+          )}
 
           {/* Log Keluar */}
           <div className="pt-2 mt-2 border-t border-gray-700">
