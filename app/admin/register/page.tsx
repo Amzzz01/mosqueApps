@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Mail, Lock, User, KeyRound, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Building2, Mail, Lock, User, KeyRound, AlertCircle, CheckCircle, Eye, EyeOff, ArrowLeft, UserPlus } from 'lucide-react';
 import { registerAdmin } from '@/lib/auth';
 
 export default function AdminRegisterPage() {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,214 +47,194 @@ export default function AdminRegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 px-4 py-8">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-emerald-600 p-3 rounded-full">
-              <Building2 className="h-12 w-12 text-white" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Masjid Al-Falah</h1>
-          <p className="text-gray-600">Sistem Pengurusan Masjid</p>
+    <div className="min-h-screen flex flex-col bg-[#0d7a6b]">
+
+      {/* TOP HERO */}
+      <div className="relative bg-gradient-to-b from-[#0d7a6b] to-[#085048] pt-12 pb-10 px-5 text-center">
+        <button
+          onClick={() => router.push('/admin/login')}
+          className="absolute top-5 left-5 w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center"
+        >
+          <ArrowLeft size={18} className="text-white" />
+        </button>
+        <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center mx-auto mb-3 mt-2">
+          <UserPlus className="w-8 h-8 text-white" />
         </div>
+        <p className="text-white text-lg font-semibold">Masjid Al-Falah</p>
+        <p className="text-white/60 text-xs mt-1">Daftar Admin Baharu</p>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Daftar Admin Baharu</h2>
+      {/* BOTTOM WHITE SHEET */}
+      <div className="bg-white rounded-t-3xl -mt-5 flex-1 px-5 pt-6 pb-8">
+        <p className="text-base font-semibold text-gray-900">Pendaftaran</p>
+        <p className="text-xs text-gray-400 mt-1 mb-5">Lengkapkan maklumat di bawah</p>
 
-          {success ? (
-            <div className="text-center">
-              <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3">
-                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div className="text-left">
-                  <p className="text-sm text-green-800 font-medium">Pendaftaran Berjaya</p>
-                  <p className="text-sm text-green-700">
-                    Akaun admin anda telah berjaya didaftarkan. Sila log masuk menggunakan email dan kata laluan anda.
-                  </p>
+        {success ? (
+          <div className="flex flex-col items-center text-center pt-4">
+            <CheckCircle className="size-12 text-green-500 mx-auto mb-3" />
+            <p className="text-base font-semibold text-gray-800">Pendaftaran Berjaya!</p>
+            <p className="text-sm text-gray-500 text-center mt-1">
+              Akaun anda telah didaftarkan. Sila log masuk.
+            </p>
+            <button
+              onClick={() => router.push('/admin/login')}
+              className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-semibold mt-5 flex items-center justify-center"
+            >
+              Pergi ke Log Masuk
+            </button>
+          </div>
+        ) : (
+          <>
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 mb-4">
+                <AlertCircle className="size-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-600">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              {/* Nama Penuh */}
+              <div>
+                <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">
+                  Nama Penuh
+                </label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 h-11 gap-2">
+                  <User className="size-4 text-gray-300 flex-shrink-0" />
+                  <input
+                    type="text"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                    placeholder="Nama penuh anda"
+                    disabled={loading}
+                  />
                 </div>
               </div>
-              <Link
-                href="/admin/login"
-                className="inline-block w-full bg-emerald-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors text-center"
+
+              {/* Email */}
+              <div>
+                <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">
+                  Email
+                </label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 h-11 gap-2">
+                  <Mail className="size-4 text-gray-300 flex-shrink-0" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                    placeholder="admin@masjid.com"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Kata Laluan */}
+              <div>
+                <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">
+                  Kata Laluan
+                </label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 h-11 gap-2">
+                  <Lock className="size-4 text-gray-300 flex-shrink-0" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                    placeholder="Min. 6 aksara"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="flex-shrink-0"
+                  >
+                    {showPassword
+                      ? <EyeOff className="size-4 text-gray-300" />
+                      : <Eye className="size-4 text-gray-300" />
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {/* Sahkan Kata Laluan */}
+              <div>
+                <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">
+                  Sahkan Kata Laluan
+                </label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 h-11 gap-2">
+                  <Lock className="size-4 text-gray-300 flex-shrink-0" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                    placeholder="Ulang kata laluan"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    tabIndex={-1}
+                    className="flex-shrink-0"
+                  >
+                    {showConfirmPassword
+                      ? <EyeOff className="size-4 text-gray-300" />
+                      : <Eye className="size-4 text-gray-300" />
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {/* Kunci Pendaftaran */}
+              <div>
+                <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">
+                  Kunci Pendaftaran
+                </label>
+                <div className="flex items-center bg-amber-50 border border-amber-200 rounded-xl px-3 h-11 gap-2">
+                  <KeyRound className="size-4 text-amber-400 flex-shrink-0" />
+                  <input
+                    type="password"
+                    required
+                    value={registrationKey}
+                    onChange={(e) => setRegistrationKey(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                    placeholder="Masukkan kunci rahsia"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-semibold mt-5 flex items-center justify-center disabled:opacity-50"
               >
-                Pergi ke Log Masuk
+                {loading
+                  ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : 'Daftar Akaun'
+                }
+              </button>
+            </form>
+
+            <div className="border-t border-slate-100 my-4" />
+
+            <p className="text-center text-xs text-gray-400">
+              Sudah ada akaun?{' '}
+              <Link href="/admin/login" className="text-[#0d7a6b] font-medium">
+                Log Masuk
               </Link>
-            </div>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-red-800 font-medium">Ralat</p>
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Registration Key */}
-                <div>
-                  <label htmlFor="registrationKey" className="block text-sm font-medium text-gray-700 mb-2">
-                    Kunci Pendaftaran
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <KeyRound className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="registrationKey"
-                      type="password"
-                      required
-                      value={registrationKey}
-                      onChange={(e) => setRegistrationKey(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Masukkan kunci pendaftaran"
-                      disabled={loading}
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">Dapatkan kunci ini daripada pentadbir utama.</p>
-                </div>
-
-                {/* Display Name */}
-                <div>
-                  <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nama Penuh
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="displayName"
-                      type="text"
-                      required
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Nama penuh anda"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="email"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="admin@masjidalfalah.com"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Kata Laluan</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Minimum 6 aksara"
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                    Sahkan Kata Laluan
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Masukkan semula kata laluan"
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      tabIndex={-1}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-emerald-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Mendaftar...
-                    </span>
-                  ) : (
-                    'Daftar Akaun'
-                  )}
-                </button>
-              </form>
-            </>
-          )}
-
-          {!success && (
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Sudah mempunyai akaun?{' '}
-                <Link href="/admin/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
-                  Log Masuk
-                </Link>
-              </p>
-            </div>
-          )}
-        </div>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

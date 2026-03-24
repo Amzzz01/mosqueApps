@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import Link from 'next/link';
-import { Building2, Mail, AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Mail, AlertCircle, ArrowLeft, CheckCircle, KeyRound } from 'lucide-react';
 import { resetPassword } from '@/lib/auth';
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,105 +28,97 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-emerald-600 p-3 rounded-full">
-              <Building2 className="h-12 w-12 text-white" />
+    <div className="min-h-screen flex flex-col bg-[#0d7a6b]">
+
+      {/* TOP HERO */}
+      <div className="relative bg-gradient-to-b from-[#0d7a6b] to-[#085048] pt-12 pb-10 px-5 text-center">
+        <button
+          onClick={() => router.push('/admin/login')}
+          className="absolute top-5 left-5 w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center"
+        >
+          <ArrowLeft size={18} className="text-white" />
+        </button>
+        <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center mx-auto mb-3 mt-2">
+          <KeyRound className="w-8 h-8 text-white" />
+        </div>
+        <p className="text-white text-lg font-semibold">Masjid Al-Falah</p>
+        <p className="text-white/60 text-xs mt-1">Tetapkan Semula Kata Laluan</p>
+      </div>
+
+      {/* BOTTOM WHITE SHEET */}
+      <div className="bg-white rounded-t-3xl -mt-5 flex-1 px-5 pt-6 pb-8">
+        <p className="text-base font-semibold text-gray-900">Lupa Kata Laluan?</p>
+        <p className="text-xs text-gray-400 mt-1 mb-5">Kami akan hantar pautan reset ke email anda</p>
+
+        {/* Success card — shown above form when success */}
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center mb-4">
+            <CheckCircle className="size-10 text-green-500 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-gray-800">Email Dihantar!</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Pautan reset telah dihantar ke <span className="font-medium">{email}</span>. Sila semak peti masuk anda.
+            </p>
+            <button
+              onClick={() => { setSuccess(false); setEmail(''); }}
+              className="text-xs text-[#0d7a6b] font-medium mt-3"
+            >
+              Hantar semula email
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 mb-4">
+            <AlertCircle className="size-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-600">{error}</p>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-400 text-center leading-relaxed mb-4">
+          Masukkan email anda dan kami akan menghantar pautan untuk menetapkan semula kata laluan anda.
+        </p>
+
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          {/* Email */}
+          <div>
+            <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5 block">
+              Email
+            </label>
+            <div className={`flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 h-11 gap-2 ${success ? 'opacity-50' : ''}`}>
+              <Mail className="size-4 text-gray-300 flex-shrink-0" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                placeholder="admin@masjidalfalah.my"
+                disabled={loading || success}
+              />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Masjid Al-Falah</h1>
-          <p className="text-gray-600">Sistem Pengurusan Masjid</p>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Lupa Kata Laluan</h2>
-          <p className="text-sm text-gray-600 text-center mb-6">
-            Masukkan email anda dan kami akan menghantar pautan untuk menetapkan semula kata laluan.
-          </p>
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading || success}
+            className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-semibold mt-5 flex items-center justify-center disabled:opacity-50"
+          >
+            {loading
+              ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : 'Hantar Pautan Reset'
+            }
+          </button>
+        </form>
 
-          {success ? (
-            <div className="text-center">
-              <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3">
-                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div className="text-left">
-                  <p className="text-sm text-green-800 font-medium">Email Dihantar</p>
-                  <p className="text-sm text-green-700">
-                    Pautan untuk menetapkan semula kata laluan telah dihantar ke <strong>{email}</strong>. Sila semak peti masuk anda.
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 mb-6">
-                Tidak menerima email? Semak folder spam atau cuba lagi.
-              </p>
-              <button
-                onClick={() => {
-                  setSuccess(false);
-                  setEmail('');
-                }}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                Hantar semula email
-              </button>
-            </div>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-red-800 font-medium">Ralat</p>
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="email"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="admin@masjidalfalah.com"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-emerald-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Menghantar...
-                    </span>
-                  ) : (
-                    'Hantar Pautan Reset'
-                  )}
-                </button>
-              </form>
-            </>
-          )}
-
-          <div className="mt-6 text-center">
-            <Link href="/admin/login" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-1">
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Log Masuk
-            </Link>
-          </div>
-        </div>
+        {/* Back link */}
+        <button
+          onClick={() => router.push('/admin/login')}
+          className="flex items-center justify-center gap-1.5 mt-4 text-xs text-[#0d7a6b] font-medium w-full"
+        >
+          <ArrowLeft size={12} />
+          Kembali ke Log Masuk
+        </button>
       </div>
     </div>
   );

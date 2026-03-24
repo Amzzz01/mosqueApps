@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import StatCard from '@/components/admin/StatCard';
 import QuickActions from '@/components/admin/QuickActions';
+import MobileAdminDashboard from '@/components/admin/MobileAdminDashboard';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 interface DashboardStats {
@@ -97,17 +98,26 @@ export default function AdminDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Memuatkan data...</p>
+      <>
+        <MobileAdminDashboard stats={stats} loading={true} userName="" />
+        <div className="hidden lg:flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent"></div>
+            <p className="mt-4 text-gray-600">Memuatkan data...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+      <MobileAdminDashboard
+        stats={stats}
+        loading={false}
+        userName={user?.displayName || 'Administrator'}
+      />
+      <div className="hidden lg:block p-6 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -185,5 +195,6 @@ export default function AdminDashboard() {
         <p className="text-gray-600">Tiada aktiviti terkini</p>
       </div>
     </div>
+    </>
   );
 }
