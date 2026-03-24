@@ -319,7 +319,7 @@ export default function DonationsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-slate-900 truncate">{name}</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        {donation.type || 'Umum'} · {donation.date ? format(toDate(donation.date), 'dd MMM yyyy') : '-'}
+                        {donation.category || 'Umum'} · {donation.date ? format(toDate(donation.date), 'dd MMM yyyy') : '-'}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
