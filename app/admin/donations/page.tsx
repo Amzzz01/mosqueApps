@@ -11,8 +11,6 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { ms } from 'date-fns/locale';
 import toast from 'react-hot-toast';
-import MobileAdminHeader from '@/components/admin/MobileAdminHeader';
-import { signOutAdmin } from '@/lib/auth';
 
 // Helper function to convert Date | Timestamp to Date
 const toDate = (dateValue: Date | Timestamp): Date => {
@@ -216,47 +214,54 @@ export default function DonationsPage() {
       {/* ═══════════════════════════════════════ */}
       <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
 
-        {/* Mobile Header */}
-        <MobileAdminHeader
-          title="Pengurusan Derma"
-          subtitle={`${filteredDonations.length} rekod dijumpai`}
-          onLogout={async () => {
-            if (window.confirm('Adakah anda pasti untuk log keluar?')) {
-              toast.success('Log keluar berjaya');
-              try { await signOutAdmin(); } catch {}
-            }
-          }}
-        />
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Pengurusan<br />Derma
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">{filteredDonations.length} rekod dijumpai</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <span className="bg-green-400/20 border border-green-400/30 text-green-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                ↑ +23% bulan ini
+              </span>
+              <span className="bg-blue-400/20 border border-blue-400/30 text-blue-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {donations.length} penderma
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-4 py-3 text-center flex-shrink-0 ml-3">
+            <p className="text-white text-[10px] font-bold leading-tight">RM</p>
+            <p className="text-white text-xl font-extrabold leading-tight">{stats.total.toLocaleString('ms-MY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            <p className="text-white/55 text-[9px] mt-1">Terkumpul</p>
+          </div>
+        </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
 
           {/* Stat Cards 2x2 */}
           {loading ? (
-            <div className="grid grid-cols-2 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-24 bg-white rounded-2xl animate-pulse" />
+            <div className="grid grid-cols-3 gap-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-20 bg-white rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Jumlah Terkumpul', value: formatCurrency(stats.total), icon: DollarSign, iconBg: 'bg-teal-50', iconColor: 'text-teal-600', badge: '+23%' },
-                { label: 'Bulan Ini', value: formatCurrency(stats.thisMonth), icon: TrendingUp, iconBg: 'bg-blue-50', iconColor: 'text-blue-600', badge: '+8%' },
-                { label: 'Tahun Ini', value: formatCurrency(stats.thisYear), icon: Calendar, iconBg: 'bg-purple-50', iconColor: 'text-purple-600', badge: null },
-                { label: 'Hari Ini', value: formatCurrency(stats.today), icon: Users, iconBg: 'bg-amber-50', iconColor: 'text-amber-600', badge: null },
+                { label: 'Bulan Ini', value: formatCurrency(stats.thisMonth), icon: TrendingUp, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
+                { label: 'Tahun Ini', value: formatCurrency(stats.thisYear), icon: Calendar, iconBg: 'bg-purple-50', iconColor: 'text-purple-600' },
+                { label: 'Hari Ini', value: formatCurrency(stats.today), icon: Users, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
               ].map((s, i) => {
                 const Icon = s.icon;
                 return (
-                  <div key={i} className="bg-white rounded-2xl p-3 shadow-sm">
-                    <div className={`w-8 h-8 rounded-xl ${s.iconBg} flex items-center justify-center mb-2`}>
-                      <Icon size={15} className={s.iconColor} />
+                  <div key={i} className="bg-white rounded-2xl p-2.5 shadow-sm">
+                    <div className={`w-7 h-7 rounded-xl ${s.iconBg} flex items-center justify-center mb-2`}>
+                      <Icon size={13} className={s.iconColor} />
                     </div>
-                    <p className="text-[10px] text-slate-400 mb-0.5">{s.label}</p>
-                    <p className="text-sm font-extrabold text-slate-900 leading-tight">{s.value}</p>
-                    {s.badge && (
-                      <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full mt-1 inline-block">↑ {s.badge}</span>
-                    )}
+                    <p className="text-[9px] text-slate-400 mb-0.5">{s.label}</p>
+                    <p className="text-xs font-extrabold text-slate-900 leading-tight">{s.value}</p>
                   </div>
                 );
               })}

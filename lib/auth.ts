@@ -14,6 +14,7 @@ export interface AdminUser {
   uid: string;
   email: string;
   displayName: string;
+  photoURL?: string;
   role: string;
   createdAt: Date;
 }
@@ -149,6 +150,7 @@ export function subscribeToAuthChanges(
         uid: firebaseUser.uid,
         email: firebaseUser.email!,
         displayName: userData.displayName || userData.name || 'Admin',
+        photoURL: userData.photoURL || firebaseUser.photoURL || undefined,
         role: userData.role,
         createdAt: userData.createdAt?.toDate() || new Date(),
       });

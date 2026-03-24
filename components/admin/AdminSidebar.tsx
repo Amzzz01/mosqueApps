@@ -18,10 +18,13 @@ import {
   ChevronsRight,
   BookOpen,
   ImageIcon,
-  Bell
+  Bell,
+  Pencil,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import EditProfileModal from './EditProfileModal';
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -38,6 +41,8 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [pengurusanAhliOpen, setPengurusanAhliOpen] = useState(
     pathname?.startsWith('/admin/pengurusan-ahli')
   );
@@ -128,13 +133,36 @@ export default function AdminSidebar({
         {/* User info */}
         <div className={`bg-[#141824] border-b border-gray-800 ${collapsed ? 'lg:px-2 lg:py-3' : 'p-3'}`}>
           <div className={`flex items-center gap-3 ${collapsed ? 'lg:justify-center' : ''}`}>
-            <div className="w-9 h-9 bg-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold">A</span>
-            </div>
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt="Avatar"
+                onClick={() => collapsed && setEditProfileOpen(true)}
+                title={collapsed ? 'Edit Profil' : undefined}
+                className={`w-9 h-9 rounded-full object-cover flex-shrink-0 ${collapsed ? 'lg:cursor-pointer' : ''}`}
+              />
+            ) : (
+              <div
+                onClick={() => collapsed && setEditProfileOpen(true)}
+                title={collapsed ? 'Edit Profil' : undefined}
+                className={`w-9 h-9 bg-teal-600 rounded-full flex items-center justify-center flex-shrink-0 ${collapsed ? 'lg:cursor-pointer' : ''}`}
+              >
+                <span className="text-xs font-bold">
+                  {(user?.displayName || 'A').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
             <div className={`flex-1 min-w-0 transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>
-              <p className="text-sm font-semibold truncate">Administrator</p>
-              <p className="text-xs text-gray-400 truncate">admin@masjid.com</p>
+              <p className="text-sm font-semibold truncate">{user?.displayName || 'Administrator'}</p>
+              <p className="text-xs text-gray-400 truncate">{user?.email || 'admin@masjid.com'}</p>
             </div>
+            <button
+              onClick={() => setEditProfileOpen(true)}
+              className={`w-7 h-7 rounded-lg bg-teal-600/15 border border-teal-600/30 flex items-center justify-center hover:bg-teal-600/25 transition-colors flex-shrink-0 ${collapsed ? 'lg:hidden' : ''}`}
+              title="Edit Profil"
+            >
+              <Pencil className="w-3.5 h-3.5 text-teal-400" />
+            </button>
           </div>
         </div>
 
@@ -299,6 +327,8 @@ export default function AdminSidebar({
           </button>
         </div>
       </aside>
+
+      <EditProfileModal isOpen={editProfileOpen} onClose={() => setEditProfileOpen(false)} />
     </>
   );
 }

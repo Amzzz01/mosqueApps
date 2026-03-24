@@ -94,7 +94,104 @@ export default function KawasanListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
+
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Pengurusan<br />Kawasan
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">{kawasanList.length} kawasan berdaftar</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <span className="bg-green-400/20 border border-green-400/30 text-green-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {kawasanList.filter(k => k.isActive).length} Aktif
+              </span>
+              <span className="bg-blue-400/20 border border-blue-400/30 text-blue-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {Object.values(stats).reduce((sum: number, s: any) => sum + (s.total || 0), 0)} Jumlah Ahli
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-4 py-3 text-center flex-shrink-0 ml-3">
+            <p className="text-white text-2xl font-extrabold leading-tight">{kawasanList.length}</p>
+            <p className="text-white/55 text-[9px] mt-1">Kawasan</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-2">
+
+          {loading ? (
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 bg-white rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : kawasanList.length === 0 ? (
+            <div className="bg-white rounded-2xl p-10 text-center">
+              <MapPin size={32} className="text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">Tiada kawasan berdaftar</p>
+            </div>
+          ) : (
+            kawasanList.map(kawasan => (
+              <div key={kawasan.id} className="bg-white rounded-2xl px-3 py-3 flex items-center gap-3 shadow-sm">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: kawasan.color + '22', border: `1.5px solid ${kawasan.color}44` }}
+                >
+                  <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: kawasan.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-900">{kawasan.name}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {stats[kawasan.id!]?.total || 0} ahli
+                    {kawasan.boundaries ? ' · Ada sempadan' : ' · Tiada sempadan'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`h-5 px-2 rounded-full text-[9px] font-semibold flex items-center ${
+                    kawasan.isActive ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {kawasan.isActive ? 'Aktif' : 'Tidak Aktif'}
+                  </span>
+                  <Link
+                    href={`/admin/pengurusan-ahli/kawasan/${kawasan.id}/edit`}
+                    className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center"
+                  >
+                    <Edit size={12} className="text-[#0d7a6b]" />
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(kawasan.id!, kawasan.name)}
+                    className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center"
+                  >
+                    <Trash2 size={12} className="text-red-500" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* FAB */}
+        <Link
+          href="/admin/pengurusan-ahli/kawasan/tambah"
+          className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
+        >
+          <Plus size={16} className="text-white" />
+          <span className="text-white text-xs font-bold">Tambah Kawasan</span>
+        </Link>
+
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+      <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -296,5 +393,7 @@ export default function KawasanListPage() {
         )}
       </div>
     </div>
+      </div>
+    </>
   );
 }

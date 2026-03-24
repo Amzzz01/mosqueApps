@@ -118,8 +118,8 @@ export default function AdminLayout({
                   <div className="flex items-center gap-2.5">
                     <Building2 className="w-7 h-7" />
                     <div>
-                      <h1 className="text-lg font-bold leading-tight">Masjid Al-Falah</h1>
-                      <p className="text-[11px] text-teal-100 leading-tight hidden sm:block">Sistem Pengurusan Masjid</p>
+                      <p className="text-white font-bold text-base leading-tight">Al-Falah</p>
+                      <p className="text-white/60 text-[9px] leading-tight">Sistem Pengurusan Masjid</p>
                     </div>
                   </div>
                 </div>

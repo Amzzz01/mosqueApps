@@ -357,7 +357,374 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <>
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col bg-slate-100 min-h-screen">
+
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between flex-shrink-0">
+          <div>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Notifikasi
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">Tetapan &amp; penghantaran</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <span className="bg-green-400/20 border border-green-400/30 text-green-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {stats.sent} Dihantar
+              </span>
+              <span className="bg-red-400/20 border border-red-400/30 text-red-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {stats.failed} Gagal
+              </span>
+              <span className="bg-blue-400/20 border border-blue-400/30 text-blue-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {stats.scheduled} Dijadual
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-4 py-3 text-center flex-shrink-0 ml-3">
+            <p className="text-white text-2xl font-extrabold leading-tight">{stats.total}</p>
+            <p className="text-white/55 text-[9px] mt-1">Jumlah</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex bg-slate-200/80 mx-3 mt-3 rounded-xl p-1 gap-1 flex-shrink-0">
+          {([
+            { key: 'settings', label: 'Tetapan', icon: <Settings size={11} /> },
+            { key: 'send', label: 'Hantar', icon: <Send size={11} /> },
+            { key: 'history', label: 'Sejarah', icon: <History size={11} /> },
+          ] as { key: TabType; label: string; icon: React.ReactNode }[]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 h-8 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                activeTab === tab.key
+                  ? 'bg-white text-[#0d7a6b] shadow-sm'
+                  : 'text-slate-500'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
+
+          {/* ══════════ TETAPAN TAB ══════════ */}
+          {activeTab === 'settings' && (
+            <>
+              {settingsLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="w-8 h-8 border-2 border-[#0d7a6b] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {/* Auto notifications */}
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Notifikasi Automatik</p>
+                  <div className="bg-white rounded-2xl px-4 py-1 shadow-sm divide-y divide-slate-100">
+                    {[
+                      { key: 'prayerTimeNotifications' as keyof NotificationSettings, label: 'Waktu Solat', sub: 'Hantar ringkasan solat harian' },
+                      { key: 'announcementNotifications' as keyof NotificationSettings, label: 'Pengumuman Baru', sub: 'Apabila pengumuman diterbitkan' },
+                    ].map(item => (
+                      <div key={item.key} className="flex items-center justify-between py-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800">{item.label}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{item.sub}</p>
+                        </div>
+                        <button
+                          onClick={() => updateSetting(item.key, !settings[item.key])}
+                          className={`w-10 h-6 rounded-full flex items-center transition-colors px-0.5 flex-shrink-0 ${
+                            settings[item.key] ? 'bg-[#0d7a6b] justify-end' : 'bg-slate-300 justify-start'
+                          }`}
+                        >
+                          <span className="w-5 h-5 bg-white rounded-full shadow-sm block" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quiet hours */}
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Waktu Senyap</p>
+                  <div className="bg-white rounded-2xl px-4 py-1 shadow-sm divide-y divide-slate-100">
+                    <div className="flex items-center justify-between py-3">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">Aktifkan Waktu Senyap</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Jangan hantar notifikasi pada waktu ini</p>
+                      </div>
+                      <button
+                        onClick={() => updateSetting('quietHoursEnabled', !settings.quietHoursEnabled)}
+                        className={`w-10 h-6 rounded-full flex items-center transition-colors px-0.5 flex-shrink-0 ${
+                          settings.quietHoursEnabled ? 'bg-[#0d7a6b] justify-end' : 'bg-slate-300 justify-start'
+                        }`}
+                      >
+                        <span className="w-5 h-5 bg-white rounded-full shadow-sm block" />
+                      </button>
+                    </div>
+                    {settings.quietHoursEnabled && (
+                      <div className="py-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Mula</label>
+                          <input
+                            type="time"
+                            value={settings.quietHoursStart || '22:00'}
+                            onChange={e => updateSetting('quietHoursStart', e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Tamat</label>
+                          <input
+                            type="time"
+                            value={settings.quietHoursEnd || '06:00'}
+                            onChange={e => updateSetting('quietHoursEnd', e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Prayer zone */}
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Zon Waktu Solat</p>
+                  <div className="bg-white rounded-2xl px-4 py-3 shadow-sm">
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Zon Semasa</label>
+                    <select
+                      value={settings.prayerZone || 'KDH01'}
+                      onChange={e => updateSetting('prayerZone', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none"
+                    >
+                      {Object.entries(MALAYSIA_ZONES).map(([state, zones]) => (
+                        <optgroup key={state} label={state}>
+                          {Object.entries(zones).map(([code, label]) => (
+                            <option key={code} value={code}>{code} — {label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Save button */}
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={settingsSaving}
+                    className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {settingsSaving ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Save size={15} />
+                        Simpan Tetapan
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ══════════ HANTAR TAB ══════════ */}
+          {activeTab === 'send' && (
+            <>
+              <div className="bg-white rounded-2xl px-4 py-4 shadow-sm space-y-4">
+                {/* Title */}
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Tajuk</label>
+                  <input
+                    type="text"
+                    placeholder="Tajuk notifikasi..."
+                    value={sendTitle}
+                    onChange={e => setSendTitle(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none placeholder:text-slate-300 focus:border-teal-400 transition-colors"
+                    style={{ WebkitBoxShadow: '0 0 0 1000px #f8fafc inset', WebkitTextFillColor: '#334155' }}
+                  />
+                </div>
+                {/* Body */}
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Kandungan</label>
+                  <textarea
+                    placeholder="Kandungan notifikasi..."
+                    value={sendBody}
+                    onChange={e => setSendBody(e.target.value)}
+                    rows={3}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 outline-none placeholder:text-slate-300 focus:border-teal-400 transition-colors resize-none"
+                  />
+                </div>
+                {/* Recipient */}
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Penerima</label>
+                  <select
+                    value={recipientType}
+                    onChange={e => setRecipientType(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none"
+                  >
+                    <option value="all">Semua Pengguna</option>
+                    <option value="members">Ahli Aktif</option>
+                    <option value="donors">Penderma</option>
+                  </select>
+                </div>
+                {/* URL */}
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">URL (opsional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={sendUrl}
+                    onChange={e => setSendUrl(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none placeholder:text-slate-300"
+                    style={{ WebkitBoxShadow: '0 0 0 1000px #f8fafc inset', WebkitTextFillColor: '#334155' }}
+                  />
+                </div>
+                {/* Schedule toggle */}
+                <div className="flex items-center justify-between pt-1">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800">Jadualkan</p>
+                    <p className="text-[10px] text-slate-400">Hantar pada masa tertentu</p>
+                  </div>
+                  <button
+                    onClick={() => setIsScheduled(!isScheduled)}
+                    className={`w-10 h-6 rounded-full flex items-center transition-colors px-0.5 flex-shrink-0 ${
+                      isScheduled ? 'bg-[#0d7a6b] justify-end' : 'bg-slate-300 justify-start'
+                    }`}
+                  >
+                    <span className="w-5 h-5 bg-white rounded-full shadow-sm block" />
+                  </button>
+                </div>
+                {isScheduled && (
+                  <input
+                    type="datetime-local"
+                    value={scheduledDateTime}
+                    onChange={e => setScheduledDateTime(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none"
+                  />
+                )}
+              </div>
+
+              {/* Preview */}
+              <div className="bg-white rounded-2xl px-4 py-3 shadow-sm">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-3">Pratonton</p>
+                <div className="bg-slate-50 rounded-xl p-3 flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#0d7a6b] flex items-center justify-center flex-shrink-0">
+                    <Bell size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">{sendTitle || 'Tajuk Notifikasi'}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{sendBody || 'Kandungan notifikasi akan dipaparkan di sini.'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Send button */}
+              <button
+                onClick={handleSend}
+                disabled={sending}
+                className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {sending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Send size={15} />
+                    {isScheduled ? 'Jadualkan' : 'Hantar Sekarang'}
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* ══════════ SEJARAH TAB ══════════ */}
+          {activeTab === 'history' && (
+            <>
+              {/* Mini stats */}
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Jumlah', value: stats.total, color: 'text-slate-900' },
+                  { label: 'Dihantar', value: stats.sent, color: 'text-green-600' },
+                  { label: 'Gagal', value: stats.failed, color: 'text-red-600' },
+                  { label: 'Dijadual', value: stats.scheduled, color: 'text-blue-600' },
+                ].map(s => (
+                  <div key={s.label} className="bg-white rounded-2xl py-2.5 text-center shadow-sm">
+                    <p className={`text-base font-extrabold ${s.color}`}>{s.value}</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bulk delete bar */}
+              {selectedIds.size > 0 && (
+                <div className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm">
+                  <span className="text-xs text-slate-600 font-semibold">{selectedIds.size} dipilih</span>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 text-white rounded-xl text-xs font-semibold disabled:opacity-50"
+                  >
+                    {deleting ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Trash2 size={12} />}
+                    Padam
+                  </button>
+                </div>
+              )}
+
+              {/* Notification history cards */}
+              {historyLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="w-8 h-8 border-2 border-[#0d7a6b] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
+                  <History size={32} className="text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-400">Tiada notifikasi lagi</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {notifications.map(n => (
+                    <div
+                      key={n.id}
+                      className={`bg-white rounded-2xl px-3 py-3 shadow-sm ${selectedIds.has(n.id!) ? 'ring-2 ring-teal-400' : ''}`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <label className="flex items-start gap-2 flex-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(n.id!)}
+                            onChange={() => toggleSelect(n.id!)}
+                            className="mt-0.5 h-3.5 w-3.5 rounded accent-teal-600 flex-shrink-0"
+                          />
+                          <p className="text-xs font-bold text-slate-900 leading-tight">{n.title}</p>
+                        </label>
+                        <button
+                          onClick={() => handleDelete(n.id!, n.title)}
+                          className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0"
+                        >
+                          <Trash2 size={11} className="text-red-500" />
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mb-2 line-clamp-2 pl-5">{n.body}</p>
+                      <div className="flex items-center gap-2 flex-wrap pl-5">
+                        {statusBadge(n.status)}
+                        <span className="h-5 px-2 rounded-full text-[9px] font-semibold bg-slate-50 text-slate-500 flex items-center">
+                          {recipientLabel(n.recipientType)}
+                        </span>
+                        <span className="text-[9px] text-slate-300 ml-auto">{formatTimestamp(n.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+      <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-4">
         <Link href="/admin/dashboard" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -1102,5 +1469,7 @@ export default function NotificationsPage() {
         </div>
       )}
     </div>
+      </div>
+    </>
   );
 }

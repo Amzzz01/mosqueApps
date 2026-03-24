@@ -11,7 +11,9 @@ import {
   UserX,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Trash2,
+  Edit,
 } from 'lucide-react';
 import { getAllAnakKariah, softDeleteAnakKariah, toggleMemberStatus } from '@/lib/anakKariah';
 import { getAllKawasan } from '@/lib/kawasan';
@@ -174,7 +176,225 @@ export default function AnakKariahListPage() {
   }
 
   return (
-    <div className="p-6">
+    <>
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
+
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Anak<br />Kariah
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">{filteredMembers.length} ahli dijumpai</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <span className="bg-green-400/20 border border-green-400/30 text-green-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {stats.aktif} Aktif
+              </span>
+              <span className="bg-blue-400/20 border border-blue-400/30 text-blue-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {stats.tidakAktif} Tidak Aktif
+              </span>
+              <span className="bg-white/15 border border-white/20 text-white/80 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {kawasanList.length} Kawasan
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-4 py-3 text-center flex-shrink-0 ml-3">
+            <p className="text-white text-2xl font-extrabold leading-tight">{stats.total}</p>
+            <p className="text-white/55 text-[9px] mt-1">Ahli</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
+
+          {/* Search bar */}
+          <div className="flex items-center bg-white border border-slate-200 rounded-2xl px-3 h-10 gap-2 shadow-sm focus-within:border-teal-400 transition-colors">
+            <Search size={13} className="text-slate-300 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari nama, IC, atau telefon..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="flex-1 text-xs text-slate-700 placeholder:text-slate-300 border-0 border-none outline-none ring-0 focus:ring-0 focus:outline-none focus:border-0 bg-transparent p-0"
+              style={{
+                WebkitBoxShadow: '0 0 0 1000px white inset',
+                WebkitTextFillColor: '#334155',
+                boxShadow: 'none',
+                border: 'none',
+                outline: 'none',
+              }}
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="flex-shrink-0">
+                <X size={13} className="text-slate-400" />
+              </button>
+            )}
+          </div>
+
+          {/* Row 1 — Status filter chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {[
+              { value: 'all', label: 'Semua Status' },
+              { value: 'aktif', label: 'Aktif' },
+              { value: 'tidak_aktif', label: 'Tidak Aktif' },
+            ].map(f => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={`flex-shrink-0 h-7 px-3 rounded-full text-[10px] font-semibold border transition-colors whitespace-nowrap ${
+                  statusFilter === f.value
+                    ? 'bg-[#0d7a6b] text-white border-[#0d7a6b]'
+                    : 'bg-white text-slate-500 border-slate-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Row 2 — Kawasan color chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <button
+              onClick={() => setKawasanFilter('all')}
+              className={`flex-shrink-0 h-6 px-3 rounded-full text-[9px] font-semibold border transition-colors whitespace-nowrap ${
+                kawasanFilter === 'all'
+                  ? 'bg-[#0d7a6b] text-white border-[#0d7a6b]'
+                  : 'bg-white text-slate-500 border-slate-200'
+              }`}
+            >
+              Semua
+            </button>
+            {kawasanList.map(k => (
+              <button
+                key={k.id}
+                onClick={() => setKawasanFilter(kawasanFilter === k.id ? 'all' : k.id)}
+                className={`flex-shrink-0 h-6 px-2.5 rounded-full text-[9px] font-semibold border transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  kawasanFilter === k.id
+                    ? 'border-[#0d7a6b] text-[#0d7a6b] bg-teal-50'
+                    : 'bg-white text-slate-500 border-slate-200'
+                }`}
+              >
+                <div
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: k.color || '#0d7a6b' }}
+                />
+                {k.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Member cards */}
+          {loading ? (
+            <div className="space-y-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-16 bg-white rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : paginatedMembers.length === 0 ? (
+            <div className="bg-white rounded-2xl p-10 text-center">
+              <Users size={32} className="text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">Tiada ahli dijumpai</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {paginatedMembers.map(member => {
+                const initial = member.namaPenuh.charAt(0).toUpperCase();
+                return (
+                  <div
+                    key={member.id}
+                    className="bg-white rounded-2xl px-3 py-3 flex items-center gap-3 shadow-sm"
+                    onClick={() => handleViewDetails(member)}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-[#0d7a6b]">{initial}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-900 truncate">{member.namaPenuh}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 truncate">{member.kawasanName} · {member.ic}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`h-5 px-2 rounded-full text-[9px] font-semibold flex items-center whitespace-nowrap ${
+                        member.status === 'aktif' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {member.status === 'aktif' ? 'Aktif' : 'Tidak Aktif'}
+                      </span>
+                      <Link
+                        href={`/admin/pengurusan-ahli/anak-kariah/${member.id}/edit`}
+                        onClick={e => e.stopPropagation()}
+                        className="w-7 h-7 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0"
+                      >
+                        <Edit size={11} className="text-[#0d7a6b]" />
+                      </Link>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDeleteClick(member); }}
+                        className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0"
+                      >
+                        <Trash2 size={11} className="text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-sm">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="text-xs text-[#0d7a6b] font-semibold disabled:opacity-30"
+              >
+                ← Sebelum
+              </button>
+              <span className="text-xs text-slate-500">{currentPage} / {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="text-xs text-[#0d7a6b] font-semibold disabled:opacity-30"
+              >
+                Seterus →
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* FAB */}
+        <Link
+          href="/admin/pengurusan-ahli/anak-kariah/tambah"
+          className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
+        >
+          <Plus size={16} className="text-white" />
+          <span className="text-white text-xs font-bold">Tambah Ahli</span>
+        </Link>
+
+        {/* Modals */}
+        {detailsOpen && selectedMember && (
+          <AkKariahDetails
+            member={selectedMember}
+            isOpen={detailsOpen}
+            onClose={() => setDetailsOpen(false)}
+          />
+        )}
+        <DeleteConfirmation
+          isOpen={!!deleteTarget}
+          memberName={deleteTarget?.namaPenuh || ''}
+          loading={!!deletingId}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
+        />
+
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+      <div className="p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -366,5 +586,7 @@ export default function AnakKariahListPage() {
         />
       </div>
     </div>
+      </div>
+    </>
   );
 }

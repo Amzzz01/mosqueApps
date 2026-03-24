@@ -93,7 +93,145 @@ export default function AktivitiListPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
+
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Galeri<br />Aktiviti
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">{filtered.length} aktiviti dijumpai</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <span className="bg-green-400/20 border border-green-400/30 text-green-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {aktivitiList.filter(a => a.published).length} Diterbitkan
+              </span>
+              <span className="bg-blue-400/20 border border-blue-400/30 text-blue-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {aktivitiList.filter(a => !a.published).length} Draf
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-4 py-3 text-center flex-shrink-0 ml-3">
+            <p className="text-white text-2xl font-extrabold leading-tight">{aktivitiList.length}</p>
+            <p className="text-white/55 text-[9px] mt-1">Aktiviti</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
+
+          {/* Category filter chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {[
+              { value: 'all', label: 'Semua' },
+              { value: 'keagamaan', label: 'Keagamaan' },
+              { value: 'pendidikan', label: 'Pendidikan' },
+              { value: 'kemasyarakatan', label: 'Kemasyarakatan' },
+              { value: 'kebajikan', label: 'Kebajikan' },
+              { value: 'lain', label: 'Lain-lain' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setCategoryFilter(opt.value)}
+                className={`flex-shrink-0 h-7 px-3 rounded-full text-[10px] font-semibold border transition-colors ${
+                  categoryFilter === opt.value
+                    ? 'bg-[#0d7a6b] text-white border-[#0d7a6b]'
+                    : 'bg-white text-slate-500 border-slate-200'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Aktiviti cards */}
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-28 bg-white rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-white rounded-2xl p-10 text-center">
+              <ImageIcon size={32} className="text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">Tiada aktiviti dijumpai</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(aktiviti => (
+                <div key={aktiviti.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                  {aktiviti.gambarUrls?.length > 0 && (
+                    <div className="relative w-full h-32">
+                      <Image src={aktiviti.gambarUrls[0]} alt={aktiviti.tajuk} fill className="object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[9px] px-2 py-0.5 rounded-full">
+                        {aktiviti.gambarUrls.length} gambar
+                      </div>
+                      <div className="absolute top-2 right-2 flex gap-1.5">
+                        <Link href={`/admin/aktiviti/${aktiviti.id}/edit`} className="w-7 h-7 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center">
+                          <Edit size={12} className="text-white" />
+                        </Link>
+                        <button onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)} className="w-7 h-7 rounded-lg bg-red-500/35 backdrop-blur-sm flex items-center justify-center">
+                          <Trash2 size={12} className="text-white" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="px-3 py-2.5">
+                    {(!aktiviti.gambarUrls || aktiviti.gambarUrls.length === 0) && (
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                          <ImageIcon size={16} className="text-purple-500" />
+                        </div>
+                        <div className="flex gap-1.5 ml-auto">
+                          <Link href={`/admin/aktiviti/${aktiviti.id}/edit`} className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                            <Edit size={12} className="text-[#0d7a6b]" />
+                          </Link>
+                          <button onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)} className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                            <Trash2 size={12} className="text-red-500" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs font-bold text-slate-900 leading-tight mb-1.5">{aktiviti.tajuk}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="h-5 px-2 rounded-full text-[9px] font-semibold bg-purple-50 text-purple-700 flex items-center">
+                        {kategoriLabels[aktiviti.kategori] || aktiviti.kategori}
+                      </span>
+                      <span className={`h-5 px-2 rounded-full text-[9px] font-semibold flex items-center ${aktiviti.published ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                        {aktiviti.published ? 'Diterbitkan' : 'Draf'}
+                      </span>
+                      <button onClick={() => handleTogglePublish(aktiviti.id!, aktiviti.published)} className="h-5 px-2 rounded-full text-[9px] font-semibold bg-slate-100 text-slate-600 flex items-center">
+                        {aktiviti.published ? 'Jadikan Draf' : 'Terbitkan'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* FAB */}
+        <Link
+          href="/admin/aktiviti/new"
+          className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
+        >
+          <Plus size={16} className="text-white" />
+          <span className="text-white text-xs font-bold">Tambah Aktiviti</span>
+        </Link>
+
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+      <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -237,5 +375,7 @@ export default function AktivitiListPage() {
         )}
       </div>
     </div>
+      </div>
+    </>
   );
 }

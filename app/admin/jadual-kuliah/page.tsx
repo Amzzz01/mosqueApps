@@ -8,8 +8,6 @@ import {
   Plus, Edit, Trash2, Search, Filter, CheckCircle, XCircle,
   BookOpen, GripVertical, Palette, Tag, Users,
 } from 'lucide-react';
-import MobileAdminHeader from '@/components/admin/MobileAdminHeader';
-import { signOutAdmin } from '@/lib/auth';
 import {
   getAllJadualKuliah, deleteJadualKuliah, toggleJadualKuliahStatus, updateJadualSequences,
   getAllKategori, createKategori, updateKategori, deleteKategori, updateKategoriSequences,
@@ -388,17 +386,30 @@ export default function JadualKuliahListPage() {
       {/* ═══════════════════════════════════════ */}
       <div className="lg:hidden flex flex-col min-h-screen bg-slate-100">
 
-        {/* Mobile Header */}
-        <MobileAdminHeader
-          title="Jadual Kuliah"
-          subtitle={activeTab === 'jadual' ? `${filtered.length} kuliah` : `${kategoriList.length} kategori`}
-          onLogout={async () => {
-            if (window.confirm('Adakah anda pasti untuk log keluar?')) {
-              toast.success('Log keluar berjaya');
-              try { await signOutAdmin(); } catch {}
-            }
-          }}
-        />
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Jadual<br />Kuliah
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">Program pendidikan mingguan</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <span className="bg-green-400/20 border border-green-400/30 text-green-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {jadualList.filter(j => j.isActive).length} Aktif
+              </span>
+              <span className="bg-blue-400/20 border border-blue-400/30 text-blue-300 text-[9px] font-semibold px-2 py-1 rounded-full">
+                {kategoriList.length} Kategori
+              </span>
+              <span className="bg-white/15 border border-white/20 text-white/80 text-[9px] font-semibold px-2 py-1 rounded-full">
+                Minggu Ini: {jadualList.filter(j => j.isActive && j.weekOfMonth?.includes('Semua')).length}
+              </span>
+            </div>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-5 py-3 text-center flex-shrink-0 ml-3">
+            <p className="text-white text-3xl font-extrabold leading-tight">{filtered.length}</p>
+            <p className="text-white/55 text-[9px] mt-1">Kuliah</p>
+          </div>
+        </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-3 py-3 pb-24 space-y-3">
