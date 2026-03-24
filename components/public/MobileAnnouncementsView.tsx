@@ -5,6 +5,7 @@ import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Announcement } from '@/types';
 import { Timestamp } from 'firebase/firestore';
+import { X } from 'lucide-react';
 
 const MONTHS_MY = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogo', 'Sep', 'Okt', 'Nov', 'Dis'];
 
@@ -26,6 +27,19 @@ function relativeTime(ts: unknown): string {
   return `${date.getDate()} ${MONTHS_MY[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+function fullDate(ts: unknown): string {
+  let date: Date;
+  if (ts && typeof (ts as { toDate?: unknown }).toDate === 'function') {
+    date = (ts as Timestamp).toDate();
+  } else if (ts instanceof Date) {
+    date = ts;
+  } else {
+    date = new Date(ts as string);
+  }
+  if (isNaN(date.getTime())) return '';
+  return `${date.getDate()} ${MONTHS_MY[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 const FILTERS = ['Semua', 'Penting', 'Umum'] as const;
 type Filter = typeof FILTERS[number];
 
@@ -33,6 +47,7 @@ export default function MobileAnnouncementsView() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<Filter>('Semua');
+  const [selected, setSelected] = useState<Announcement | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -52,6 +67,15 @@ export default function MobileAnnouncementsView() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (selected) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selected]);
 
   const filtered = announcements.filter(a => {
     if (activeFilter === 'Penting') return a.priority === 'high';
@@ -107,7 +131,8 @@ export default function MobileAnnouncementsView() {
           filtered.map(a => (
             <div
               key={a.id}
-              className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 ${
+              onClick={() => setSelected(a)}
+              className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform ${
                 isImportant(a) ? 'bg-[#f0fdff]' : ''
               }`}
             >
@@ -129,6 +154,66 @@ export default function MobileAnnouncementsView() {
           ))
         )}
       </div>
+
+      {/* Modal */}
+      {selected && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            onClick={() => setSelected(null)}
+          />
+
+          {/* Bottom sheet */}
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[85vh]">
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-start justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+              <div className="flex-1 pr-3">
+                {/* Priority + category badges */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    isImportant(selected)
+                      ? 'bg-[#164e63] text-cyan-400'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {isImportant(selected) ? 'Penting' : 'Umum'}
+                  </span>
+                  {selected.category && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                      {selected.category}
+                    </span>
+                  )}
+                </div>
+                <p className="font-bold text-gray-900 text-sm leading-snug">{selected.title}</p>
+                <p className="text-xs text-gray-400 mt-1">{fullDate(selected.createdAt)}</p>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+              >
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 px-4 py-4 pb-8">
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {selected.content}
+              </p>
+              {selected.author && (
+                <p className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                  Disiarkan oleh: <span className="font-medium text-gray-600">{selected.author}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
