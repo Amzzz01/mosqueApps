@@ -13,6 +13,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import MobileHomeDashboard from '@/components/public/MobileHomeDashboard';
+import QuotesSlideshow from '@/components/public/QuotesSlideshow';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { JadualKuliah, Aktiviti } from '@/types';
@@ -393,17 +394,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ========== QUOTE ========== */}
-      <section className="py-16 lg:py-20 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <blockquote className="text-2xl sm:text-3xl lg:text-4xl font-serif italic text-gray-800 leading-relaxed">
-            &ldquo;Sebaik-baik kalian adalah yang mempelajari Al-Quran dan mengajarkannya&rdquo;
-          </blockquote>
-          <p className="mt-5 lg:mt-8 text-gray-500 font-medium lg:text-lg">
-            Hadis Riwayat Bukhari
-          </p>
-        </div>
-      </section>
+      {/* ========== QUOTES SLIDESHOW ========== */}
+      <div className="hidden lg:block">
+        <section id="quotes">
+          <QuotesSlideshow />
+        </section>
+      </div>
     </div>
   );
 }

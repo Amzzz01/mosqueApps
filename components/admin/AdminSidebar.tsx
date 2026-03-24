@@ -16,6 +16,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   BookOpen,
+  BookMarked,
   ImageIcon,
   Bell,
   Pencil,
@@ -57,6 +58,7 @@ function MosqueIcon({ className }: { className?: string }) {
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { signOutAdmin } from '@/lib/auth';
 import EditProfileModal from './EditProfileModal';
 
 interface AdminSidebarProps {
@@ -92,11 +94,16 @@ export default function AdminSidebar({
   const isActive = (path: string) => pathname === path;
   const isParentActive = (parentPath: string) => pathname?.startsWith(parentPath);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     const confirm = window.confirm('Adakah anda pasti untuk log keluar?');
     if (confirm) {
-      toast.success('Log keluar berjaya');
-      router.push('/');
+      try {
+        await signOutAdmin();
+        toast.success('Log keluar berjaya');
+        router.push('/');
+      } catch {
+        toast.error('Gagal log keluar');
+      }
     }
   };
 
@@ -305,6 +312,17 @@ export default function AdminSidebar({
           >
             <ImageIcon className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Galeri Aktiviti</span>
+          </Link>
+
+          {/* Quotes */}
+          <Link
+            href="/admin/quotes"
+            onClick={handleNavClick}
+            className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/quotes') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
+            title={collapsed ? 'Quotes' : undefined}
+          >
+            <BookMarked className="w-5 h-5 flex-shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Quotes</span>
           </Link>
 
           {/* Pengumuman */}

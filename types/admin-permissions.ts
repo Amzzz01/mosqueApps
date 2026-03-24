@@ -12,6 +12,7 @@ export const ADMIN_MODULES = [
   'Derma',
   'Jadual Kuliah',
   'Galeri Aktiviti',
+  'Quotes',
   'Pengumuman',
   'Notifikasi',
 ] as const;

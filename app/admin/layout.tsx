@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { signOutAdmin } from '@/lib/auth';
 import AdminSidebar from '@/components/admin/AdminSidebar';
@@ -52,6 +52,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Mobile drawer state (never persisted)
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -80,14 +81,15 @@ export default function AdminLayout({
   const handleLogout = useCallback(async () => {
     const confirm = window.confirm('Adakah anda pasti untuk log keluar?');
     if (confirm) {
-      toast.success('Log keluar berjaya');
       try {
         await signOutAdmin();
+        toast.success('Log keluar berjaya');
+        router.push('/');
       } catch {
-        // ignore
+        toast.error('Gagal log keluar');
       }
     }
-  }, []);
+  }, [router]);
 
   // Close mobile drawer on route change
   useEffect(() => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, Megaphone, BookOpen, Heart, ImageIcon, UserPlus, Phone, ChevronRight, UserRoundCog, Download } from 'lucide-react';
+import QuotesSlideshow from '@/components/public/QuotesSlideshow';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { fetchPrayerTimes, PrayerTimes } from '@/lib/api/jakim';
@@ -346,6 +347,9 @@ export default function MobileHomeDashboard() {
           </div>
         ) : null}
       </div>
+
+      {/* D. Quotes Slideshow */}
+      <QuotesSlideshow />
     </div>
   );
 }
