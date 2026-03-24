@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { signOutAdmin } from '@/lib/auth';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import ProtectedRoute from '@/components/admin/ProtectedRoute';
 import FCMProvider from '@/components/FCMProvider';
@@ -18,7 +19,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { logout } = useAuth();
 
   // Mobile drawer state (never persisted)
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -49,12 +49,12 @@ export default function AdminLayout({
     if (confirm) {
       toast.success('Log keluar berjaya');
       try {
-        await logout();
+        await signOutAdmin();
       } catch {
         // ignore
       }
     }
-  }, [logout]);
+  }, []);
 
   // Close mobile drawer on route change
   useEffect(() => {

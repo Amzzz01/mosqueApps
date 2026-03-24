@@ -1,8 +1,6 @@
 // app/admin/aktiviti/[id]/edit/page.tsx
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,6 +10,8 @@ import { getAktivitiById, updateAktiviti } from '@/lib/aktiviti';
 import { uploadFiles, deleteFile, validateFile } from '@/lib/uploadHelpers';
 import { Timestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+
+export const dynamic = 'force-dynamic';
 
 const toDateStr = (val: Date | Timestamp): string => {
   if (val instanceof Timestamp) return val.toDate().toISOString().split('T')[0];

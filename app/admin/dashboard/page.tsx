@@ -55,27 +55,31 @@ export default function AdminDashboard() {
       const activeAnnouncements = announcementsSnapshot.data().count;
 
       // Get donations — filtered for current month + all-time total
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfMonthTs = Timestamp.fromDate(startOfMonth);
-
-      // Monthly donations query
-      const monthlyQuery = query(
-        collection(db, 'donations'),
-        where('date', '>=', startOfMonthTs)
-      );
-      const monthlySnapshot = await getDocs(monthlyQuery);
-      let monthlyDonations = 0;
-      monthlySnapshot.forEach((doc) => {
-        monthlyDonations += doc.data().amount || 0;
-      });
-
-      // All-time total — still needs full scan, but only reads amount field
-      const allDonationsSnapshot = await getDocs(collection(db, 'donations'));
       let totalDonations = 0;
-      allDonationsSnapshot.forEach((doc) => {
-        totalDonations += doc.data().amount || 0;
-      });
+      let monthlyDonations = 0;
+      try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfMonthTs = Timestamp.fromDate(startOfMonth);
+
+        // Monthly donations query
+        const monthlyQuery = query(
+          collection(db, 'donations'),
+          where('date', '>=', startOfMonthTs)
+        );
+        const monthlySnapshot = await getDocs(monthlyQuery);
+        monthlySnapshot.forEach((doc) => {
+          monthlyDonations += doc.data().amount || 0;
+        });
+
+        // All-time total — still needs full scan, but only reads amount field
+        const allDonationsSnapshot = await getDocs(collection(db, 'donations'));
+        allDonationsSnapshot.forEach((doc) => {
+          totalDonations += doc.data().amount || 0;
+        });
+      } catch {
+        // Permission denied or unavailable — leave totals as 0
+      }
 
       setStats({
         totalMembers,

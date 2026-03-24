@@ -1,8 +1,6 @@
 // app/admin/aktiviti/new/page.tsx
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +9,8 @@ import { ArrowLeft, Save, X, Upload, Trash2 } from 'lucide-react';
 import { createAktiviti } from '@/lib/aktiviti';
 import { uploadFiles, validateFile } from '@/lib/uploadHelpers';
 import toast from 'react-hot-toast';
+
+export const dynamic = 'force-dynamic';
 
 export default function NewAktivitiPage() {
   const router = useRouter();
