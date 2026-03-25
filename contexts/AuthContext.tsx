@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...prev,
         displayName: data.displayName || data.name || prev.displayName,
         photoURL: data.photoURL || currentUser.photoURL || undefined,
+        permissions: data.permissions ?? prev.permissions,
       } : prev);
     } catch (error) {
       console.error('refreshUser error:', error);

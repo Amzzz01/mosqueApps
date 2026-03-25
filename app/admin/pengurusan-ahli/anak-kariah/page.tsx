@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -28,6 +29,7 @@ const ITEMS_PER_PAGE = 15;
 
 export default function AnakKariahListPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [allMembers, setAllMembers] = useState<AnakKariah[]>([]);
   const [kawasanList, setKawasanList] = useState<Kawasan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,16 @@ export default function AnakKariahListPage() {
   const [deleteTarget, setDeleteTarget] = useState<AnakKariah | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Pengurusan Ahli']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Pengurusan Ahli']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Pengurusan Ahli']?.delete === true;
 
   useEffect(() => {
     loadData();
@@ -321,19 +333,23 @@ export default function AnakKariahListPage() {
                       }`}>
                         {member.status === 'aktif' ? 'Aktif' : 'Tidak Aktif'}
                       </span>
-                      <Link
-                        href={`/admin/pengurusan-ahli/anak-kariah/${member.id}/edit`}
-                        onClick={e => e.stopPropagation()}
-                        className="w-7 h-7 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0"
-                      >
-                        <Edit size={11} className="text-[#0d7a6b]" />
-                      </Link>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleDeleteClick(member); }}
-                        className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0"
-                      >
-                        <Trash2 size={11} className="text-red-500" />
-                      </button>
+                      {canEdit && (
+                        <Link
+                          href={`/admin/pengurusan-ahli/anak-kariah/${member.id}/edit`}
+                          onClick={e => e.stopPropagation()}
+                          className="w-7 h-7 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0"
+                        >
+                          <Edit size={11} className="text-[#0d7a6b]" />
+                        </Link>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDeleteClick(member); }}
+                          className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0"
+                        >
+                          <Trash2 size={11} className="text-red-500" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -514,6 +530,8 @@ export default function AnakKariahListPage() {
           onViewDetails={handleViewDetails}
           onDelete={handleDeleteClick}
           onToggleStatus={handleToggleStatus}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
 
         {/* Pagination */}

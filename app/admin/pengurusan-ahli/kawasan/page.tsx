@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 import {
   Plus,
   Edit,
@@ -15,14 +17,24 @@ import {
 } from 'lucide-react';
 import { getAllKawasan, deleteKawasan, toggleKawasanStatus, getKawasanStats } from '@/lib/kawasan';
 import { Kawasan } from '@/types/kariah';
-import toast from 'react-hot-toast';
 
 export default function KawasanListPage() {
+  const { user } = useAuth();
   const router = useRouter();
   const [kawasanList, setKawasanList] = useState<Kawasan[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [stats, setStats] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Pengurusan Ahli']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Pengurusan Ahli']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Pengurusan Ahli']?.delete === true;
 
   useEffect(() => {
     loadKawasan();
@@ -158,18 +170,22 @@ export default function KawasanListPage() {
                   }`}>
                     {kawasan.isActive ? 'Aktif' : 'Tidak Aktif'}
                   </span>
-                  <Link
-                    href={`/admin/pengurusan-ahli/kawasan/${kawasan.id}/edit`}
-                    className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center"
-                  >
-                    <Edit size={12} className="text-[#0d7a6b]" />
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(kawasan.id!, kawasan.name)}
-                    className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center"
-                  >
-                    <Trash2 size={12} className="text-red-500" />
-                  </button>
+                  {canEdit && (
+                    <Link
+                      href={`/admin/pengurusan-ahli/kawasan/${kawasan.id}/edit`}
+                      className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center"
+                    >
+                      <Edit size={12} className="text-[#0d7a6b]" />
+                    </Link>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(kawasan.id!, kawasan.name)}
+                      className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center"
+                    >
+                      <Trash2 size={12} className="text-red-500" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -363,25 +379,29 @@ export default function KawasanListPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center justify-center gap-2">
-                          <Link
-                            href={`/admin/pengurusan-ahli/kawasan/${kawasan.id}/edit`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(kawasan.id, kawasan.name)}
-                            disabled={deleting === kawasan.id}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                            title="Padam"
-                          >
-                            {deleting === kawasan.id ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-5 h-5" />
-                            )}
-                          </button>
+                          {canEdit && (
+                            <Link
+                              href={`/admin/pengurusan-ahli/kawasan/${kawasan.id}/edit`}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </Link>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDelete(kawasan.id, kawasan.name)}
+                              disabled={deleting === kawasan.id}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Padam"
+                            >
+                              {deleting === kawasan.id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5" />
+                              )}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

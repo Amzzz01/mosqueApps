@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -45,12 +47,14 @@ function formatWeek(weeks: string[]): string {
 
 // ─── Sortable Kuliah Card ───
 function SortableKuliahCard({
-  item, kategoriList, onToggle, onDelete,
+  item, kategoriList, onToggle, onDelete, canEdit, canDelete,
 }: {
   item: JadualKuliah;
   kategoriList: KategoriKuliah[];
   onToggle: (id: string, isActive: boolean) => void;
   onDelete: (id: string, title: string) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id!,
@@ -134,20 +138,24 @@ function SortableKuliahCard({
                 )}
               </button>
               <div className="flex items-center space-x-2">
-                <Link
-                  href={`/admin/jadual-kuliah/${item.id}/edit`}
-                  className="text-emerald-600 hover:text-emerald-900 p-2"
-                  title="Edit"
-                >
-                  <Edit className="h-5 w-5" />
-                </Link>
-                <button
-                  onClick={() => onDelete(item.id!, item.title)}
-                  className="text-red-600 hover:text-red-900 p-2"
-                  title="Padam"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
+                {canEdit && (
+                  <Link
+                    href={`/admin/jadual-kuliah/${item.id}/edit`}
+                    className="text-emerald-600 hover:text-emerald-900 p-2"
+                    title="Edit"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </Link>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => onDelete(item.id!, item.title)}
+                    className="text-red-600 hover:text-red-900 p-2"
+                    title="Padam"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -159,11 +167,13 @@ function SortableKuliahCard({
 
 // ─── Sortable Kategori Row ───
 function SortableKategoriRow({
-  item, onEdit, onDelete,
+  item, onEdit, onDelete, canEdit, canDelete,
 }: {
   item: KategoriKuliah;
   onEdit: (k: KategoriKuliah) => void;
   onDelete: (id: string, name: string) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id!,
@@ -197,18 +207,24 @@ function SortableKategoriRow({
       }`}>
         {item.isActive ? 'Aktif' : 'Tidak Aktif'}
       </span>
-      <button onClick={() => onEdit(item)} className="text-emerald-600 hover:text-emerald-900 p-1.5" title="Edit">
-        <Edit className="h-4 w-4" />
-      </button>
-      <button onClick={() => onDelete(item.id!, item.name)} className="text-red-600 hover:text-red-900 p-1.5" title="Padam">
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {canEdit && (
+        <button onClick={() => onEdit(item)} className="text-emerald-600 hover:text-emerald-900 p-1.5" title="Edit">
+          <Edit className="h-4 w-4" />
+        </button>
+      )}
+      {canDelete && (
+        <button onClick={() => onDelete(item.id!, item.name)} className="text-red-600 hover:text-red-900 p-1.5" title="Padam">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
 
 // ─── Main Page ───
 export default function JadualKuliahListPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'jadual' | 'kategori'>('jadual');
   const [jadualList, setJadualList] = useState<JadualKuliah[]>([]);
   const [kategoriList, setKategoriList] = useState<KategoriKuliah[]>([]);
@@ -245,6 +261,16 @@ export default function JadualKuliahListPage() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Jadual Kuliah']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Jadual Kuliah']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Jadual Kuliah']?.delete === true;
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -773,6 +799,8 @@ export default function JadualKuliahListPage() {
                       kategoriList={kategoriList}
                       onToggle={handleToggle}
                       onDelete={handleDelete}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
                     />
                   ))}
                 </div>
@@ -877,6 +905,8 @@ export default function JadualKuliahListPage() {
                       item={kat}
                       onEdit={openKatForm}
                       onDelete={handleKatDelete}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
                     />
                   ))}
                 </div>

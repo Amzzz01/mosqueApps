@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import {
   ArrowLeft, Bell, Send, History, Settings, Save, Trash2,
@@ -77,6 +79,8 @@ function statusBadge(status: string) {
 }
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('settings');
 
   // ─── Settings State ───
@@ -118,6 +122,13 @@ export default function NotificationsPage() {
   const [stats, setStats] = useState({ total: 0, sent: 0, failed: 0, scheduled: 0, totalDelivered: 0 });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Notifikasi']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
 
   // ─── Load Settings ───
   useEffect(() => {

@@ -12,6 +12,8 @@ interface AkKariahTableProps {
   onViewDetails: (member: AnakKariah) => void;
   onDelete: (member: AnakKariah) => void;
   onToggleStatus: (member: AnakKariah) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -29,7 +31,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function AkKariahTable({ members, deletingId, togglingId, onViewDetails, onDelete, onToggleStatus }: AkKariahTableProps) {
+export default function AkKariahTable({ members, deletingId, togglingId, onViewDetails, onDelete, onToggleStatus, canEdit = true, canDelete = true }: AkKariahTableProps) {
   if (members.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -98,25 +100,29 @@ export default function AkKariahTable({ members, deletingId, togglingId, onViewD
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <Link
-                      href={`/admin/pengurusan-ahli/anak-kariah/${member.id}/edit`}
-                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => onDelete(member)}
-                      disabled={deletingId === member.id}
-                      className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                      title="Padam"
-                    >
-                      {deletingId === member.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
+                    {canEdit && (
+                      <Link
+                        href={`/admin/pengurusan-ahli/anak-kariah/${member.id}/edit`}
+                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Link>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(member)}
+                        disabled={deletingId === member.id}
+                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Padam"
+                      >
+                        {deletingId === member.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

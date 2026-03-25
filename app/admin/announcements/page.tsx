@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { collection, query, orderBy, getDocs, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -23,12 +25,24 @@ const toDate = (dateValue: Date | Timestamp): Date => {
 };
 
 export default function AnnouncementsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [publishedFilter, setPublishedFilter] = useState<string>('all');
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Pengumuman']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Pengumuman']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Pengumuman']?.delete === true;
 
   useEffect(() => {
     fetchAnnouncements();
@@ -259,12 +273,16 @@ export default function AnnouncementsPage() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <p className="text-xs font-bold text-slate-900 leading-tight flex-1">{ann.title}</p>
                       <div className="flex gap-1.5 flex-shrink-0">
-                        <Link href={`/admin/announcements/${ann.id}/edit`} className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
-                          <Edit size={12} className="text-[#0d7a6b]" />
-                        </Link>
-                        <button onClick={() => handleDelete(ann.id!, ann.title)} className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                          <Trash2 size={12} className="text-red-500" />
-                        </button>
+                        {canEdit && (
+                          <Link href={`/admin/announcements/${ann.id}/edit`} className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                            <Edit size={12} className="text-[#0d7a6b]" />
+                          </Link>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(ann.id!, ann.title)} className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                            <Trash2 size={12} className="text-red-500" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-[10px] text-slate-400 mb-2 line-clamp-2">{ann.content}</p>
@@ -521,20 +539,24 @@ export default function AnnouncementsPage() {
                           <Eye className="h-5 w-5" />
                         </Link>
                       )}
-                      <Link
-                        href={`/admin/announcements/${announcement.id}/edit`}
-                        className="text-emerald-600 hover:text-emerald-900 p-2"
-                        title="Edit"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(announcement.id!, announcement.title)}
-                        className="text-red-600 hover:text-red-900 p-2"
-                        title="Padam"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
+                      {canEdit && (
+                        <Link
+                          href={`/admin/announcements/${announcement.id}/edit`}
+                          className="text-emerald-600 hover:text-emerald-900 p-2"
+                          title="Edit"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </Link>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(announcement.id!, announcement.title)}
+                          className="text-red-600 hover:text-red-900 p-2"
+                          title="Padam"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

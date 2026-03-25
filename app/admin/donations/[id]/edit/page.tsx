@@ -3,6 +3,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -18,6 +19,7 @@ const toDateStr = (val: Date | Timestamp): string => {
 export default function EditDonationPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -28,6 +30,13 @@ export default function EditDonationPage() {
     paymentMethod: 'cash',
     notes: '',
   });
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Derma']?.edit) {
+      toast.error('Anda tidak mempunyai akses untuk mengedit modul ini');
+      router.replace('/admin/donations');
+    }
+  }, [user, router]);
 
   useEffect(() => { fetchDonation(); }, [params.id]);
 

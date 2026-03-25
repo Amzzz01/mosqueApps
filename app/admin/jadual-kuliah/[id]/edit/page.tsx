@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Save, X, Upload, Trash2 } from 'lucide-react';
@@ -18,6 +19,7 @@ const PRAYERS = ['Subuh', 'Zohor', 'Asar', 'Maghrib', 'Isyak'] as const;
 export default function EditJadualKuliahPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [kategoriList, setKategoriList] = useState<KategoriKuliah[]>([]);
@@ -40,6 +42,13 @@ export default function EditJadualKuliahPage() {
   const [posterRemoved, setPosterRemoved] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Jadual Kuliah']?.edit) {
+      toast.error('Anda tidak mempunyai akses untuk mengedit modul ini');
+      router.replace('/admin/jadual-kuliah');
+    }
+  }, [user, router]);
 
   useEffect(() => {
     const fetchData = async () => {

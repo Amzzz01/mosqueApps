@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2, Trash2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -29,6 +30,7 @@ const PRESET_COLORS = [
 export default function EditKawasanPage() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
   const kawasanId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,13 @@ export default function EditKawasanPage() {
     isActive: true
   });
   const [boundaries, setBoundaries] = useState<GeoJSONPolygon | null>(null);
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Pengurusan Ahli']?.edit) {
+      toast.error('Anda tidak mempunyai akses untuk mengedit modul ini');
+      router.replace('/admin/pengurusan-ahli/kawasan');
+    }
+  }, [user, router]);
 
   useEffect(() => {
     loadKawasan();

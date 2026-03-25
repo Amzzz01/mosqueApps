@@ -1,5 +1,6 @@
 export interface Permission {
   view: boolean;
+  add: boolean;
   edit: boolean;
   delete: boolean;
 }
@@ -18,9 +19,9 @@ export const ADMIN_MODULES = [
 ] as const;
 
 export const DEFAULT_PERMISSIONS: AdminPermissions = Object.fromEntries(
-  ADMIN_MODULES.map(m => [m, { view: true, edit: false, delete: false }])
+  ADMIN_MODULES.map(m => [m, { view: true, add: false, edit: false, delete: false }])
 );
 
 export const FULL_PERMISSIONS: AdminPermissions = Object.fromEntries(
-  ADMIN_MODULES.map(m => [m, { view: true, edit: true, delete: true }])
+  ADMIN_MODULES.map(m => [m, { view: true, add: true, edit: true, delete: true }])
 );

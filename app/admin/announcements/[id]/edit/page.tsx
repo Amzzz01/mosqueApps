@@ -26,6 +26,13 @@ export default function EditAnnouncementPage() {
   });
 
   useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Pengumuman']?.edit) {
+      toast.error('Anda tidak mempunyai akses untuk mengedit modul ini');
+      router.replace('/admin/announcements');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     fetchAnnouncement();
   }, [params.id]);
 

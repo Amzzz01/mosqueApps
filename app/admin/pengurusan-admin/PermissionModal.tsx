@@ -42,7 +42,7 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
           if (data.permissions) {
             const loaded: AdminPermissions = {};
             for (const m of ADMIN_MODULES) {
-              loaded[m] = data.permissions[m] ?? { view: true, edit: false, delete: false };
+              loaded[m] = data.permissions[m] ?? { view: true, add: false, edit: false, delete: false };
             }
             setPermissions(loaded);
             setSavedPermissions(loaded);
@@ -73,11 +73,9 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
     setPermissions(prev => {
       const cur = { ...prev[module] };
       if (key === 'view' && !value) {
-        cur.view = false; cur.edit = false; cur.delete = false;
-      } else if (key === 'edit' && value) {
-        cur.edit = true; cur.view = true;
-      } else if (key === 'delete' && value) {
-        cur.delete = true; cur.view = true;
+        cur.view = false; cur.add = false; cur.edit = false; cur.delete = false;
+      } else if ((key === 'add' || key === 'edit' || key === 'delete') && value) {
+        cur[key] = true; cur.view = true;
       } else {
         cur[key] = value;
       }
@@ -89,7 +87,9 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
     if (!admin) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'adminUsers', admin.uid), { role: selectedRole, permissions });
+      const payload = { role: selectedRole, permissions };
+      console.log('[PermissionModal] Saving to Firestore:', JSON.stringify(payload, null, 2));
+      await updateDoc(doc(db, 'adminUsers', admin.uid), payload);
       if (admin.role !== selectedRole) {
         if (selectedRole === 'super_admin') {
           toast.success('Tahap akses dinaiktaraf ke Super Admin');
@@ -112,6 +112,15 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
   const initial = (admin.displayName || 'A').charAt(0).toUpperCase();
   const isSelf = currentUser?.uid === admin.uid;
   const isSuper = selectedRole === 'super_admin';
+
+  const allSelected = !isSuper && ADMIN_MODULES.every(
+    m => permissions[m]?.view && permissions[m]?.add && permissions[m]?.edit && permissions[m]?.delete
+  );
+
+  const handleSelectAll = () => {
+    if (selectedRole === 'super_admin') return;
+    setPermissions(allSelected ? { ...DEFAULT_PERMISSIONS } : { ...FULL_PERMISSIONS });
+  };
 
   const RoleSelector = () => (
     <div className="mb-4">
@@ -194,11 +203,24 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
             )}
 
             {/* Permission table */}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Permission Modul</p>
+              {!isSuper && (
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  {allSelected ? 'Kosongkan Semua' : 'Pilih Semua'}
+                </button>
+              )}
+            </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="text-left py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modul</th>
                   <th className="text-center py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">View</th>
+                  <th className="text-center py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Add</th>
                   <th className="text-center py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Edit</th>
                   <th className="text-center py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Delete</th>
                 </tr>
@@ -207,7 +229,7 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
                 {ADMIN_MODULES.map(m => (
                   <tr key={m} className={isSuper ? 'opacity-50' : ''}>
                     <td className="py-2.5 text-sm text-gray-700">{m}</td>
-                    {(['view', 'edit', 'delete'] as (keyof Permission)[]).map(k => (
+                    {(['view', 'add', 'edit', 'delete'] as (keyof Permission)[]).map(k => (
                       <td key={k} className="py-2.5 text-center">
                         <input
                           type="checkbox"
@@ -319,12 +341,23 @@ export default function PermissionModal({ admin, isOpen, onClose }: Props) {
             </div>
           )}
 
+          {/* Select All button */}
+          {!isSuper && (
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="w-full py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors"
+            >
+              {allSelected ? 'Kosongkan Semua Permission' : 'Pilih Semua Permission'}
+            </button>
+          )}
+
           {/* Permission list */}
           {ADMIN_MODULES.map(m => (
             <div key={m} className={`bg-gray-50 rounded-xl px-4 py-3 ${isSuper ? 'opacity-50' : ''}`}>
               <p className="text-xs font-semibold text-gray-700 mb-2.5">{m}</p>
-              <div className="flex gap-5">
-                {(['view', 'edit', 'delete'] as (keyof Permission)[]).map(k => (
+              <div className="flex gap-4 flex-wrap">
+                {(['view', 'add', 'edit', 'delete'] as (keyof Permission)[]).map(k => (
                   <label key={k} className={`flex items-center gap-1.5 ${isSuper ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                     <input
                       type="checkbox"

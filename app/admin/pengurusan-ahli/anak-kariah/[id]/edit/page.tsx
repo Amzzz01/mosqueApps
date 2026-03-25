@@ -44,6 +44,13 @@ export default function EditAnakKariahPage({ params }: { params: Promise<{ id: s
   });
 
   useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Pengurusan Ahli']?.edit) {
+      toast.error('Anda tidak mempunyai akses untuk mengedit modul ini');
+      router.replace('/admin/pengurusan-ahli/anak-kariah');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     loadData();
   }, [id]);
 
@@ -217,7 +224,250 @@ export default function EditAnakKariahPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="p-6">
+    <>
+      {/* ═══════════════════════════════════════ */}
+      {/* MOBILE LAYOUT — lg:hidden              */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="lg:hidden flex flex-col bg-slate-100 min-h-screen">
+
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between flex-shrink-0">
+          <div>
+            <button
+              type="button"
+              onClick={() => router.push('/admin/pengurusan-ahli/anak-kariah')}
+              className="flex items-center gap-1.5 text-white/65 text-[10px] font-semibold mb-2"
+            >
+              <ArrowLeft size={11} />
+              Kembali ke Senarai
+            </button>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Edit Anak<br />Kariah
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">Kemas kini maklumat anak kariah</p>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-3 py-3 text-center flex-shrink-0 ml-3">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-1">
+              <User size={17} className="text-white" />
+            </div>
+            <p className="text-white/55 text-[9px]">Anak Kariah</p>
+          </div>
+        </div>
+
+        {/* Scrollable form */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-28 space-y-3">
+
+          {/* Map card */}
+          {kawasanList.length > 0 && (
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+                <MapPin size={13} className="text-[#0d7a6b]" />
+                <p className="text-xs font-bold text-slate-800">Peta Kawasan</p>
+              </div>
+              <div className="p-2">
+                <KariahMapViewer
+                  kawasanList={kawasanList}
+                  userLocation={userCoordinates}
+                  highlightedKawasanId={formData.kawasanId || null}
+                  height="200px"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Form card */}
+          <div className="bg-white rounded-2xl px-4 py-4 shadow-sm space-y-4">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide border-b border-slate-100 pb-3">Maklumat Anak Kariah</p>
+
+            {/* Nama Penuh */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Nama Penuh <span className="text-red-400">*</span></label>
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 h-11 gap-2 focus-within:border-teal-400 transition-colors">
+                <User size={14} className="text-slate-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  value={formData.namaPenuh}
+                  onChange={e => setFormData(prev => ({ ...prev, namaPenuh: e.target.value }))}
+                  placeholder="Nama penuh anak kariah"
+                  required
+                  className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 border-0 border-none ring-0 focus:ring-0 focus:outline-none p-0"
+                  style={{ WebkitBoxShadow: '0 0 0 1000px #f8fafc inset', WebkitTextFillColor: '#334155', boxShadow: 'none', border: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* No IC */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">No. IC <span className="text-red-400">*</span></label>
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 h-11 gap-2 focus-within:border-teal-400 transition-colors">
+                <CreditCard size={14} className="text-slate-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  value={formData.ic}
+                  onChange={e => handleICChange(e.target.value)}
+                  placeholder="000000-00-0000"
+                  required
+                  maxLength={14}
+                  className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 border-0 border-none ring-0 focus:ring-0 focus:outline-none p-0"
+                  style={{ WebkitBoxShadow: '0 0 0 1000px #f8fafc inset', WebkitTextFillColor: '#334155', boxShadow: 'none', border: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* Alamat */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Alamat <span className="text-red-400">*</span></label>
+              <div className="flex items-start bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 gap-2 focus-within:border-teal-400 transition-colors">
+                <Home size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
+                <textarea
+                  value={formData.alamat}
+                  onChange={e => setFormData(prev => ({ ...prev, alamat: e.target.value }))}
+                  placeholder="Alamat penuh"
+                  required
+                  rows={2}
+                  className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 border-0 border-none ring-0 focus:ring-0 focus:outline-none p-0 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Kawasan */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Kawasan <span className="text-red-400">*</span></label>
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 h-11 gap-2 focus-within:border-teal-400 transition-colors">
+                <MapPin size={14} className="text-slate-400 flex-shrink-0" />
+                <select
+                  value={formData.kawasanId}
+                  onChange={e => setFormData(prev => ({ ...prev, kawasanId: e.target.value }))}
+                  required
+                  className="flex-1 bg-transparent text-sm text-slate-700 outline-none border-0 border-none ring-0 focus:ring-0 p-0 appearance-none"
+                >
+                  <option value="">Pilih kawasan</option>
+                  {kawasanList.map(k => (
+                    <option key={k.id} value={k.id}>{k.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Telefon */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Telefon <span className="text-red-400">*</span></label>
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 h-11 gap-2 focus-within:border-teal-400 transition-colors">
+                <Phone size={14} className="text-slate-400 flex-shrink-0" />
+                <input
+                  type="tel"
+                  value={formData.telefon}
+                  onChange={e => handlePhoneChange(e.target.value)}
+                  placeholder="012-3456789"
+                  required
+                  className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 border-0 border-none ring-0 focus:ring-0 focus:outline-none p-0"
+                  style={{ WebkitBoxShadow: '0 0 0 1000px #f8fafc inset', WebkitTextFillColor: '#334155', boxShadow: 'none', border: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* Jantina */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Jantina <span className="text-red-400">*</span></label>
+              <div className="flex gap-3">
+                {(['Lelaki', 'Perempuan'] as const).map(j => (
+                  <button
+                    key={j}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, jantina: j }))}
+                    className={`flex-1 h-11 rounded-2xl text-xs font-semibold border transition-colors ${
+                      formData.jantina === j
+                        ? 'bg-[#0d7a6b] text-white border-[#0d7a6b]'
+                        : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    {j}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tarikh Lahir */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Tarikh Lahir</label>
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-3 h-11 gap-2 focus-within:border-teal-400 transition-colors">
+                <Calendar size={14} className="text-slate-400 flex-shrink-0" />
+                <input
+                  type="date"
+                  value={formData.tarikhLahir}
+                  onChange={e => setFormData(prev => ({ ...prev, tarikhLahir: e.target.value }))}
+                  className="flex-1 bg-transparent text-sm text-slate-700 outline-none border-0 border-none ring-0 focus:ring-0 p-0"
+                  style={{ WebkitBoxShadow: '0 0 0 1000px #f8fafc inset', WebkitTextFillColor: '#334155', boxShadow: 'none', border: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="flex items-center justify-between pt-1">
+              <div>
+                <p className="text-xs font-semibold text-slate-800">Status Anak Kariah</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {formData.status === 'aktif' ? 'Anak kariah aktif dalam kariah' : 'Anak kariah tidak aktif'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, status: prev.status === 'aktif' ? 'tidak_aktif' : 'aktif' }))}
+                className={`w-12 h-6 rounded-full flex items-center transition-colors px-0.5 flex-shrink-0 ${
+                  formData.status === 'aktif' ? 'bg-[#0d7a6b] justify-end' : 'bg-slate-300 justify-start'
+                }`}
+              >
+                <span className="w-5 h-5 bg-white rounded-full shadow-sm block" />
+              </button>
+            </div>
+
+            {/* Catatan */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">Catatan</label>
+              <textarea
+                value={formData.catatan}
+                onChange={e => setFormData(prev => ({ ...prev, catatan: e.target.value }))}
+                placeholder="Nota tambahan (pilihan)"
+                rows={3}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-300 resize-none focus:border-teal-400 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Fixed bottom action bar */}
+        <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white border-t border-slate-100 px-4 py-3 flex gap-3 z-20 shadow-lg">
+          <button
+            type="button"
+            onClick={() => router.push('/admin/pengurusan-ahli/anak-kariah')}
+            className="flex-1 h-11 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit as any}
+            disabled={saving}
+            className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-teal-600/20"
+          >
+            {saving ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Save size={14} />
+                Kemas Kini
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* DESKTOP LAYOUT — hidden lg:block       */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="hidden lg:block">
+      <div className="p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -251,7 +501,7 @@ export default function EditAnakKariahPage({ params }: { params: Promise<{ id: s
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-5">
-            <h2 className="text-lg font-semibold text-gray-900 pb-4 border-b">Maklumat Ahli</h2>
+            <h2 className="text-lg font-semibold text-gray-900 pb-4 border-b">Maklumat Anak Kariah</h2>
 
             {/* Nama Penuh */}
             <div>
@@ -410,7 +660,7 @@ export default function EditAnakKariahPage({ params }: { params: Promise<{ id: s
               <textarea
                 value={formData.catatan}
                 onChange={(e) => setFormData((prev) => ({ ...prev, catatan: e.target.value }))}
-                placeholder="Nota tambahan untuk ahli ini (pilihan)"
+                placeholder="Nota tambahan untuk anak kariah ini (pilihan)"
                 rows={3}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
               />
@@ -445,6 +695,8 @@ export default function EditAnakKariahPage({ params }: { params: Promise<{ id: s
           </div>
         </form>
       </div>
-    </div>
+      </div>
+      </div>
+    </>
   );
 }

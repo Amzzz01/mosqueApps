@@ -17,6 +17,7 @@ export interface AdminUser {
   photoURL?: string;
   role: string;
   createdAt: Date;
+  permissions?: Record<string, { view: boolean; edit: boolean; delete: boolean }>;
 }
 
 /**
@@ -50,6 +51,7 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
       displayName: userData.displayName || userData.name || 'Admin',
       role: userData.role,
       createdAt: userData.createdAt?.toDate() || new Date(),
+      permissions: userData.permissions,
     };
   } catch (error: any) {
     // Handle specific Firebase errors
@@ -111,6 +113,7 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       displayName: userData.displayName || userData.name || 'Admin',
       role: userData.role,
       createdAt: userData.createdAt?.toDate() || new Date(),
+      permissions: userData.permissions,
     };
   } catch (error) {
     console.error('Error getting current admin:', error);
@@ -146,6 +149,7 @@ export function subscribeToAuthChanges(
         return;
       }
       
+      console.log('[AuthContext] userData.permissions on login:', userData.permissions);
       callback({
         uid: firebaseUser.uid,
         email: firebaseUser.email!,
@@ -153,6 +157,7 @@ export function subscribeToAuthChanges(
         photoURL: userData.photoURL || firebaseUser.photoURL || undefined,
         role: userData.role,
         createdAt: userData.createdAt?.toDate() || new Date(),
+        permissions: userData.permissions,
       });
     } catch (error) {
       console.error('Error in auth state change:', error);

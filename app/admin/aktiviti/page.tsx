@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Edit, Trash2, Search, Filter, CheckCircle, XCircle, ImageIcon } from 'lucide-react';
@@ -27,11 +29,23 @@ const kategoriLabels: Record<string, string> = {
 };
 
 export default function AktivitiListPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [aktivitiList, setAktivitiList] = useState<Aktiviti[]>([]);
   const [filtered, setFiltered] = useState<Aktiviti[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Galeri Aktiviti']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Galeri Aktiviti']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Galeri Aktiviti']?.delete === true;
 
   useEffect(() => { fetchData(); }, []);
   useEffect(() => { applyFilters(); }, [searchTerm, categoryFilter, aktivitiList]);
@@ -172,12 +186,16 @@ export default function AktivitiListPage() {
                         {aktiviti.gambarUrls.length} gambar
                       </div>
                       <div className="absolute top-2 right-2 flex gap-1.5">
-                        <Link href={`/admin/aktiviti/${aktiviti.id}/edit`} className="w-7 h-7 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center">
-                          <Edit size={12} className="text-white" />
-                        </Link>
-                        <button onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)} className="w-7 h-7 rounded-lg bg-red-500/35 backdrop-blur-sm flex items-center justify-center">
-                          <Trash2 size={12} className="text-white" />
-                        </button>
+                        {canEdit && (
+                          <Link href={`/admin/aktiviti/${aktiviti.id}/edit`} className="w-7 h-7 rounded-lg bg-white/25 backdrop-blur-sm flex items-center justify-center">
+                            <Edit size={12} className="text-white" />
+                          </Link>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)} className="w-7 h-7 rounded-lg bg-red-500/35 backdrop-blur-sm flex items-center justify-center">
+                            <Trash2 size={12} className="text-white" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -188,12 +206,16 @@ export default function AktivitiListPage() {
                           <ImageIcon size={16} className="text-purple-500" />
                         </div>
                         <div className="flex gap-1.5 ml-auto">
-                          <Link href={`/admin/aktiviti/${aktiviti.id}/edit`} className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
-                            <Edit size={12} className="text-[#0d7a6b]" />
-                          </Link>
-                          <button onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)} className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                            <Trash2 size={12} className="text-red-500" />
-                          </button>
+                          {canEdit && (
+                            <Link href={`/admin/aktiviti/${aktiviti.id}/edit`} className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+                              <Edit size={12} className="text-[#0d7a6b]" />
+                            </Link>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)} className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                              <Trash2 size={12} className="text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -353,20 +375,24 @@ export default function AktivitiListPage() {
                     )}
                   </button>
                   <div className="flex items-center space-x-2">
-                    <Link
-                      href={`/admin/aktiviti/${aktiviti.id}/edit`}
-                      className="text-emerald-600 hover:text-emerald-900 p-2"
-                      title="Edit"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)}
-                      className="text-red-600 hover:text-red-900 p-2"
-                      title="Padam"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    {canEdit && (
+                      <Link
+                        href={`/admin/aktiviti/${aktiviti.id}/edit`}
+                        className="text-emerald-600 hover:text-emerald-900 p-2"
+                        title="Edit"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </Link>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(aktiviti.id!, aktiviti.tajuk)}
+                        className="text-red-600 hover:text-red-900 p-2"
+                        title="Padam"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

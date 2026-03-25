@@ -112,6 +112,9 @@ export default function AdminSidebar({
     onClose();
   };
 
+  const canView = (module: string) =>
+    user?.role === 'super_admin' || user?.permissions?.[module]?.view === true;
+
   // Shared nav item classes
   const navItemBase = 'flex items-center rounded-lg transition-all text-sm';
   const navItemActive = 'bg-teal-600/20 text-teal-400';
@@ -220,7 +223,7 @@ export default function AdminSidebar({
           </Link>
 
           {/* Pengurusan Ahli */}
-          <div className="space-y-1">
+          {canView('Pengurusan Ahli') && <div className="space-y-1">
             <button
               onClick={() => {
                 if (collapsed) {
@@ -279,10 +282,10 @@ export default function AdminSidebar({
                 </Link>
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Derma */}
-          <Link
+          {canView('Derma') && <Link
             href="/admin/donations"
             onClick={handleNavClick}
             className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/donations') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
@@ -290,10 +293,10 @@ export default function AdminSidebar({
           >
             <DollarSign className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Derma</span>
-          </Link>
+          </Link>}
 
           {/* Jadual Kuliah */}
-          <Link
+          {canView('Jadual Kuliah') && <Link
             href="/admin/jadual-kuliah"
             onClick={handleNavClick}
             className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/jadual-kuliah') || isParentActive('/admin/jadual-kuliah') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
@@ -301,10 +304,10 @@ export default function AdminSidebar({
           >
             <BookOpen className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Jadual Kuliah</span>
-          </Link>
+          </Link>}
 
           {/* Galeri Aktiviti */}
-          <Link
+          {canView('Galeri Aktiviti') && <Link
             href="/admin/aktiviti"
             onClick={handleNavClick}
             className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/aktiviti') || isParentActive('/admin/aktiviti') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
@@ -312,10 +315,10 @@ export default function AdminSidebar({
           >
             <ImageIcon className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Galeri Aktiviti</span>
-          </Link>
+          </Link>}
 
           {/* Quotes */}
-          <Link
+          {canView('Quotes') && <Link
             href="/admin/quotes"
             onClick={handleNavClick}
             className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/quotes') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
@@ -323,10 +326,10 @@ export default function AdminSidebar({
           >
             <BookMarked className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Quotes</span>
-          </Link>
+          </Link>}
 
           {/* Pengumuman */}
-          <Link
+          {canView('Pengumuman') && <Link
             href="/admin/announcements"
             onClick={handleNavClick}
             className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/announcements') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
@@ -334,10 +337,10 @@ export default function AdminSidebar({
           >
             <MessageSquare className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Pengumuman</span>
-          </Link>
+          </Link>}
 
           {/* Notifikasi */}
-          <Link
+          {canView('Notifikasi') && <Link
             href="/admin/settings/notifications"
             onClick={handleNavClick}
             className={`${navItemBase} gap-3 px-3 py-2.5 ${isActive('/admin/settings/notifications') ? navItemActive : navItemInactive} ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}
@@ -345,7 +348,7 @@ export default function AdminSidebar({
           >
             <Bell className="w-5 h-5 flex-shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-200 ${collapsed ? 'lg:hidden' : ''}`}>Notifikasi</span>
-          </Link>
+          </Link>}
 
           {/* Pengurusan Admin — super_admin only */}
           {user?.role === 'super_admin' && (

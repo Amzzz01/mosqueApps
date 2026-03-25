@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Search, Pencil, Trash2, Quote as QuoteIcon, BookOpen, BookMarked, Users, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Quote, QUOTE_CATEGORIES, subscribeToQuotes, toggleQuoteStatus, deleteQuote } from '@/lib/db/quotes';
@@ -21,6 +23,8 @@ const CATEGORY_MOBILE_COLORS: Record<string, string> = {
 };
 
 export default function QuotesPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [quoteList, setQuoteList] = useState<Quote[]>([]);
   const [filtered, setFiltered] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +33,16 @@ export default function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Quotes']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Quotes']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Quotes']?.delete === true;
 
   useEffect(() => {
     const unsub = subscribeToQuotes(quotes => {
@@ -174,18 +188,22 @@ export default function QuotesPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-400 truncate flex-1 mr-2">{quote.source}</p>
                     <div className="flex gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => { setEditingQuote(quote); setShowModal(true); }}
-                        className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(quote.id!)}
-                        className="p-1.5 bg-red-50 text-red-500 rounded-lg"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => { setEditingQuote(quote); setShowModal(true); }}
+                          className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(quote.id!)}
+                          className="p-1.5 bg-red-50 text-red-500 rounded-lg"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -314,20 +332,24 @@ export default function QuotesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5">
-                        <button
-                          onClick={() => { setEditingQuote(quote); setShowModal(true); }}
-                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(quote.id!)}
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Padam"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => { setEditingQuote(quote); setShowModal(true); }}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(quote.id!)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Padam"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

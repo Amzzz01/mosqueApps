@@ -3,6 +3,7 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Save, X, Upload, Trash2 } from 'lucide-react';
@@ -22,6 +23,7 @@ const toDateStr = (val: Date | Timestamp): string => {
 export default function EditAktivitiPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +39,13 @@ export default function EditAktivitiPage() {
     kategori: 'keagamaan' as 'keagamaan' | 'pendidikan' | 'kemasyarakatan' | 'kebajikan' | 'lain',
     published: false,
   });
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Galeri Aktiviti']?.edit) {
+      toast.error('Anda tidak mempunyai akses untuk mengedit modul ini');
+      router.replace('/admin/aktiviti');
+    }
+  }, [user, router]);
 
   useEffect(() => { fetchAktiviti(); }, [params.id]);
 

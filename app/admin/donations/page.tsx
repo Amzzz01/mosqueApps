@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { collection, query, orderBy, getDocs, Timestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Donation } from '@/types';
@@ -11,6 +12,7 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { ms } from 'date-fns/locale';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Helper function to convert Date | Timestamp to Date
 const toDate = (dateValue: Date | Timestamp): Date => {
@@ -24,6 +26,8 @@ const toDate = (dateValue: Date | Timestamp): Date => {
 };
 
 export default function DonationsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [donations, setDonations] = useState<Donation[]>([]);
   const [filteredDonations, setFilteredDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +38,16 @@ export default function DonationsPage() {
     thisMonth: 0,
     thisYear: 0,
   });
+
+  useEffect(() => {
+    if (user && user.role !== 'super_admin' && !user.permissions?.['Derma']?.view) {
+      toast.error('Anda tidak mempunyai akses ke modul ini');
+      router.replace('/admin/dashboard');
+    }
+  }, [user, router]);
+
+  const canEdit = user?.role === 'super_admin' || user?.permissions?.['Derma']?.edit === true;
+  const canDelete = user?.role === 'super_admin' || user?.permissions?.['Derma']?.delete === true;
 
   useEffect(() => {
     fetchDonations();
@@ -510,20 +524,24 @@ export default function DonationsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        <Link
-                          href={`/admin/donations/${donation.id}/edit`}
-                          className="text-emerald-600 hover:text-emerald-900 p-1"
-                          title="Edit"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(donation.id!, donation.donorName)}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Padam"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {canEdit && (
+                          <Link
+                            href={`/admin/donations/${donation.id}/edit`}
+                            className="text-emerald-600 hover:text-emerald-900 p-1"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Link>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(donation.id!, donation.donorName)}
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title="Padam"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
