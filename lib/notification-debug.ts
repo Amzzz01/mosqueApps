@@ -145,9 +145,7 @@ export async function sendTestNotification(): Promise<{ success: boolean; logs: 
       body: JSON.stringify({
         title: 'Notifikasi Ujian',
         body: 'Ini ujian melalui FCM — sama seperti notifikasi sebenar',
-        recipientType: 'specific',
-        recipientIds: [],
-        token,
+        recipientType: 'all',
         url: '/',
       }),
     });

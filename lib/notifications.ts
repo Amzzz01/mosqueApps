@@ -29,10 +29,8 @@ export interface NotificationSettings {
   prayerNotifications: boolean;
   prayerReminderMinutes: number;
   prayerZone?: string;
-  announcementNotifications: boolean;
   eventNotifications: boolean;
   eventReminder1Day: boolean;
-  eventReminder1Hour: boolean;
   donationReminder: boolean;
   donationReminderDay: number; // day of month 1-28
   quietHoursEnabled: boolean;
@@ -44,10 +42,8 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
   prayerNotifications: false,
   prayerReminderMinutes: 15,
   prayerZone: 'KDH01',
-  announcementNotifications: true,
   eventNotifications: true,
   eventReminder1Day: true,
-  eventReminder1Hour: true,
   donationReminder: false,
   donationReminderDay: 1,
   quietHoursEnabled: false,
@@ -139,17 +135,6 @@ export async function sendNotification(data: {
   }
 }
 
-// ─── Send to Topic ───
-export async function sendToTopic(data: {
-  title: string;
-  body: string;
-  topic: string;
-  url?: string;
-  createdBy: string;
-}): Promise<{ id: string; sent: number; failed: number; cleaned: number }> {
-  return sendNotification({ ...data, recipientType: 'all' });
-}
-
 // ─── Schedule Notification ───
 export async function scheduleNotification(data: {
   title: string;
@@ -174,17 +159,6 @@ export async function scheduleNotification(data: {
     updatedAt: serverTimestamp(),
   });
   return notifRef.id;
-}
-
-// ─── History ───
-export async function getNotificationHistory(maxResults = 50): Promise<NotificationData[]> {
-  const q = query(
-    collection(db, 'notifications'),
-    orderBy('createdAt', 'desc'),
-    limit(maxResults)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as NotificationData));
 }
 
 export function subscribeToNotifications(
@@ -213,7 +187,7 @@ export async function getNotificationStats(): Promise<{
   scheduled: number;
   totalDelivered: number;
 }> {
-  const snap = await getDocs(collection(db, 'notifications'));
+  const snap = await getDocs(query(collection(db, 'notifications'), limit(200)));
   let sent = 0, failed = 0, scheduled = 0, totalDelivered = 0;
 
   snap.forEach(d => {

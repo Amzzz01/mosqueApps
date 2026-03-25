@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { collection, query, orderBy, getDocs, deleteDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Announcement } from '@/types';
+import { sendNotification } from '@/lib/notifications';
 import { Plus, Eye, Edit, Trash2, Search, Filter, CheckCircle, XCircle, Megaphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ms } from 'date-fns/locale';
@@ -117,10 +118,32 @@ export default function AnnouncementsPage() {
         updatedAt: Timestamp.now(),
       });
       toast.success(
-        !currentStatus 
-          ? 'Pengumuman berjaya diterbitkan' 
+        !currentStatus
+          ? 'Pengumuman berjaya diterbitkan'
           : 'Pengumuman berjaya dijadikan draf'
       );
+
+      // Send notification only when publishing (false → true)
+      if (!currentStatus) {
+        const announcement = announcements.find(a => a.id === id);
+        if (announcement) {
+          try {
+            const bodyPreview = announcement.content.length > 100
+              ? announcement.content.slice(0, 100) + '...'
+              : announcement.content;
+            await sendNotification({
+              title: announcement.title,
+              body: bodyPreview,
+              recipientType: 'all',
+              url: '/announcements',
+              createdBy: user?.uid || 'system',
+            });
+          } catch (notifErr) {
+            console.error('Failed to send announcement notification:', notifErr);
+          }
+        }
+      }
+
       fetchAnnouncements();
     } catch (error) {
       console.error('Error toggling publish status:', error);

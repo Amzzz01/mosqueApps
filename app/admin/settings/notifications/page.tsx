@@ -434,11 +434,10 @@ export default function NotificationsPage() {
               ) : (
                 <>
                   {/* Auto notifications */}
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Notifikasi Automatik</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Kawalan Broadcast Automatik (Sistem)</p>
                   <div className="bg-white rounded-2xl px-4 py-1 shadow-sm divide-y divide-slate-100">
                     {[
-                      { key: 'prayerTimeNotifications' as keyof NotificationSettings, label: 'Waktu Solat', sub: 'Hantar ringkasan solat harian' },
-                      { key: 'announcementNotifications' as keyof NotificationSettings, label: 'Pengumuman Baru', sub: 'Apabila pengumuman diterbitkan' },
+                      { key: 'prayerNotifications' as keyof NotificationSettings, label: 'Waktu Solat', sub: 'Hantar ringkasan solat harian' },
                     ].map(item => (
                       <div key={item.key} className="flex items-center justify-between py-3">
                         <div>
@@ -532,6 +531,9 @@ export default function NotificationsPage() {
                       </>
                     )}
                   </button>
+                  <p className="text-[10px] text-slate-400 italic text-center px-2">
+                    Tetapan ini mengawal notifikasi yang dihantar secara automatik kepada semua pengguna. Pengguna boleh mengurus kebenaran notifikasi masing-masing di telefon mereka.
+                  </p>
                 </>
               )}
             </>
@@ -795,6 +797,11 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <>
+              {/* Section label */}
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Kawalan Broadcast Automatik (Sistem)</h2>
+              </div>
+
               {/* Prayer Notifications */}
               <div className="bg-white rounded-lg shadow-sm border p-5 space-y-4">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -851,31 +858,6 @@ export default function NotificationsPage() {
                 )}
               </div>
 
-              {/* Announcement Notifications */}
-              <div className="bg-white rounded-lg shadow-sm border p-5 space-y-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-emerald-600" />
-                  Notifikasi Pengumuman
-                </h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Pengumuman baru</p>
-                    <p className="text-xs text-gray-500">Notifikasi apabila pengumuman baru diterbitkan</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => updateSetting('announcementNotifications', !settings.announcementNotifications)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      settings.announcementNotifications ? 'bg-emerald-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow ${
-                      settings.announcementNotifications ? 'translate-x-5' : ''
-                    }`} />
-                  </button>
-                </div>
-              </div>
-
               {/* Event Notifications */}
               <div className="bg-white rounded-lg shadow-sm border p-5 space-y-4">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -909,15 +891,6 @@ export default function NotificationsPage() {
                         className="h-4 w-4 text-emerald-600 rounded focus:ring-emerald-500"
                       />
                       <span className="text-sm text-gray-700">Peringatan 1 hari sebelum</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.eventReminder1Hour}
-                        onChange={e => updateSetting('eventReminder1Hour', e.target.checked)}
-                        className="h-4 w-4 text-emerald-600 rounded focus:ring-emerald-500"
-                      />
-                      <span className="text-sm text-gray-700">Peringatan 1 jam sebelum</span>
                     </label>
                   </div>
                 )}
@@ -1019,6 +992,9 @@ export default function NotificationsPage() {
                 <Save className="w-5 h-5" />
                 {settingsSaving ? 'Menyimpan...' : 'Simpan Tetapan'}
               </button>
+              <p className="text-xs text-gray-400 italic">
+                Tetapan ini mengawal notifikasi yang dihantar secara automatik kepada semua pengguna. Pengguna boleh mengurus kebenaran notifikasi masing-masing di telefon mereka.
+              </p>
 
               {/* Token Cleanup */}
               <div className="bg-white rounded-lg shadow-sm border p-5 space-y-4">

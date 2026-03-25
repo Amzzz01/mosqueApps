@@ -36,7 +36,8 @@ function isInQuietHours(startHHMM: string, endHHMM: string): boolean {
 export async function POST(request: Request) {
   try {
     const reqBody = await request.json();
-    const { title, body, recipientType, topic, url, notifId } = reqBody;
+    const { title, body, recipientType, topic, notifId } = reqBody;
+    const url = (reqBody.url as string) || '/';
     console.log('[API/notifications] Request received:', JSON.stringify(reqBody));
 
     if (!title || !body) {
@@ -81,7 +82,6 @@ export async function POST(request: Request) {
 
     const messaging = getAdminMessaging();
     const db = getAdminFirestore();
-    const link = url || '/';
 
     const origin = request.headers.get('origin');
     const forwardedHost = request.headers.get('x-forwarded-host');
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     const data: Record<string, string> = {
       title,
       body,
-      link,
+      url,
       notifId: notifId || '',
       icon: baseUrl + '/icons/icon-192x192.png',
       badge: baseUrl + '/icons/badge-72x72.png',
@@ -286,7 +286,7 @@ export async function POST(request: Request) {
         body,
         recipientType: recipientType || 'all',
         ...(topic ? { topic } : {}),
-        link,
+        url,
         readBy: [],
         ...updateData,
         createdAt: FieldValue.serverTimestamp(),

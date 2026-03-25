@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Bell, Clock, AlertCircle, Check, CheckCheck, Loader2 } from 'lucide-react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
+import { requestNotificationPermission, deleteFCMToken, getPermissionStatus, saveFCMToken } from '@/lib/firebase-messaging';
 import {
   collection, query, where, orderBy, limit,
   onSnapshot, updateDoc, doc, arrayUnion, writeBatch, Timestamp,
@@ -63,6 +64,8 @@ export default function NotifikasiPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [markingAll, setMarkingAll] = useState(false);
+  const [permStatus, setPermStatus] = useState<NotificationPermission | 'unsupported' | null>(null);
+  const [permLoading, setPermLoading] = useState(false);
 
   // Auth
   useEffect(() => {
@@ -72,6 +75,37 @@ export default function NotifikasiPage() {
     });
     return () => unsub();
   }, []);
+
+  // Notification permission status (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPermStatus(getPermissionStatus());
+    }
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    setPermLoading(true);
+    try {
+      const token = await requestNotificationPermission();
+      if (token) {
+        const uid = auth.currentUser?.uid;
+        if (uid) await saveFCMToken(uid, token);
+      }
+      setPermStatus(getPermissionStatus());
+    } finally {
+      setPermLoading(false);
+    }
+  };
+
+  const handleDisableNotifications = async () => {
+    setPermLoading(true);
+    try {
+      await deleteFCMToken();
+      setPermStatus(getPermissionStatus());
+    } finally {
+      setPermLoading(false);
+    }
+  };
 
   // Real-time subscription
   useEffect(() => {
@@ -174,6 +208,61 @@ export default function NotifikasiPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+
+        {/* Tetapan Notifikasi Saya — logged-in users only */}
+        {uid && permStatus !== null && (
+          <div className="mb-6 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-emerald-600" />
+              Tetapan Notifikasi Saya
+            </h2>
+
+            {permStatus === 'granted' && (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Notifikasi dibenarkan</span>
+                </div>
+                <button
+                  onClick={handleDisableNotifications}
+                  disabled={permLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {permLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Nyahaktifkan
+                </button>
+              </div>
+            )}
+
+            {permStatus === 'default' && (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Notifikasi belum dibenarkan</span>
+                </div>
+                <button
+                  onClick={handleEnableNotifications}
+                  disabled={permLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {permLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Benarkan Notifikasi
+                </button>
+              </div>
+            )}
+
+            {permStatus === 'denied' && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Notifikasi disekat</span>
+                </div>
+                <p className="text-xs text-gray-500 pl-4">Sila benarkan notifikasi di tetapan pelayar anda</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Top bar: filter + mark all */}
         {uid && notifications.length > 0 && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">

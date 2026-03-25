@@ -8,6 +8,7 @@ import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/fir
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { Announcement } from '@/types';
+import { sendNotification } from '@/lib/notifications';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -17,6 +18,7 @@ export default function EditAnnouncementPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [prevPublished, setPrevPublished] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -48,6 +50,7 @@ export default function EditAnnouncementPage() {
           priority: data.priority || 'low',
           published: data.published ?? false,
         });
+        setPrevPublished(data.published ?? false);
       } else {
         toast.error('Pengumuman tidak dijumpai');
         router.push('/admin/announcements');
@@ -90,6 +93,24 @@ export default function EditAnnouncementPage() {
         published: formData.published,
         updatedAt: serverTimestamp(),
       });
+
+      // Send notification only when transitioning from draft → published
+      if (formData.published && !prevPublished) {
+        try {
+          const bodyPreview = formData.content.trim().length > 100
+            ? formData.content.trim().slice(0, 100) + '...'
+            : formData.content.trim();
+          await sendNotification({
+            title: formData.title.trim(),
+            body: bodyPreview,
+            recipientType: 'all',
+            url: '/announcements',
+            createdBy: user?.uid || 'system',
+          });
+        } catch (notifErr) {
+          console.error('Failed to send announcement notification:', notifErr);
+        }
+      }
 
       toast.success('Pengumuman berjaya dikemaskini');
       router.push('/admin/announcements');
