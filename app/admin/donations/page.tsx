@@ -331,20 +331,44 @@ export default function DonationsPage() {
                 const textColors = ['text-teal-600', 'text-blue-600', 'text-purple-600', 'text-pink-600', 'text-amber-600'];
                 const idx = name.charCodeAt(0) % 5;
                 return (
-                  <div key={donation.id} className="bg-white rounded-2xl px-3 py-3 flex items-center gap-3 shadow-sm">
-                    <div className={`w-9 h-9 rounded-xl ${bgColors[idx]} flex items-center justify-center flex-shrink-0`}>
-                      <span className={`text-sm font-bold ${textColors[idx]}`}>{initial}</span>
+                  <div key={donation.id} className="bg-white rounded-2xl px-3 py-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl ${bgColors[idx]} flex items-center justify-center flex-shrink-0`}>
+                        <span className={`text-sm font-bold ${textColors[idx]}`}>{initial}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 truncate">{name}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {getCategoryLabel(donation.category)} · {donation.date ? format(toDate(donation.date), 'dd MMM yyyy') : '-'}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-extrabold text-[#0d7a6b]">{formatCurrency(donation.amount)}</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">{getPaymentMethodLabel(donation.paymentMethod)}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate">{name}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        {donation.category || 'Umum'} · {donation.date ? format(toDate(donation.date), 'dd MMM yyyy') : '-'}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-extrabold text-[#0d7a6b]">{formatCurrency(donation.amount)}</p>
-                      <p className="text-[9px] text-slate-400 mt-0.5">{donation.paymentMethod || 'Tunai'}</p>
-                    </div>
+                    {(canEdit || canDelete) && (
+                      <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-100">
+                        {canEdit && (
+                          <Link
+                            href={`/admin/donations/${donation.id}/edit`}
+                            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-semibold"
+                          >
+                            <Edit size={11} />
+                            Edit
+                          </Link>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(donation.id!, donation.donorName)}
+                            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-semibold"
+                          >
+                            <Trash2 size={11} />
+                            Padam
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
