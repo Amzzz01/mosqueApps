@@ -123,7 +123,18 @@ export default function NotificationBell() {
     await Promise.all(unread.map(n => markAsRead(n.id)));
   };
 
-  if (!user) return null;
+  // Not logged in — show plain bell linking to notifikasi page
+  if (!user) {
+    return (
+      <Link
+        href="/notifikasi"
+        className="relative p-2 text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+        aria-label="Notifikasi"
+      >
+        <Bell className="w-5 h-5" />
+      </Link>
+    );
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>

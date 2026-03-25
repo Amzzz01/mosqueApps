@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Building2, Menu, X, Clock, MessageSquare, Phone, UserRoundCog, Download } from 'lucide-react';
+import { Building2, Menu, X, Clock, MessageSquare, Phone, UserRoundCog, Download, Bell } from 'lucide-react';
 
 export default function PublicNav() {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,9 +69,18 @@ export default function PublicNav() {
               ))}
             </div>
 
+            {/* Notification Bell - Desktop only */}
+            <Link
+              href="/notifikasi"
+              className="hidden md:flex p-2 rounded-lg hover:bg-emerald-700 transition-colors items-center"
+              title="Notifikasi"
+            >
+              <Bell className="h-5 w-5" />
+            </Link>
+
             {/* ADMIN LOGIN BUTTON - Visible on both Mobile and Desktop */}
-            <Link 
-              href="/admin/login" 
+            <Link
+              href="/admin/login"
               className="p-2 md:px-4 md:py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center space-x-2"
               title="Admin Login"
             >
