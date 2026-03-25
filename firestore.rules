@@ -2,178 +2,87 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ════════════════════════════════════════════════════════════════
-    // HELPER FUNCTIONS
-    // ════════════════════════════════════════════════════════════════
-    
-    // Helper: authenticated user
     function isAuth() {
       return request.auth != null;
     }
-    
-    // Helper: is server request (Firebase Admin SDK)
-    // Admin SDK requests don't have request.auth, they bypass rules
-    // But we can check for specific patterns in testing
-    function isServerRequest() {
-      // Admin SDK bypasses all rules, so this is just for documentation
-      // In practice, Admin SDK operations always succeed
-      return true;
-    }
 
-    // ════════════════════════════════════════════════════════════════
-    // ACTIVITIES
-    // ════════════════════════════════════════════════════════════════
-    
     match /activities/{docId} {
-      allow read: if isAuth();
       allow get: if true;
-      allow list: if request.query.limit <= 50;
+      allow list: if true;
       allow create, update, delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // ANNOUNCEMENTS
-    // ════════════════════════════════════════════════════════════════
-    
     match /announcements/{docId} {
-      allow read: if isAuth();
       allow get: if true;
-      allow list: if request.query.limit <= 50;
+      allow list: if true;
       allow create, update, delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // KULIAH (LECTURES) - Legacy
-    // ════════════════════════════════════════════════════════════════
-    
     match /kuliah/{docId} {
       allow get: if true;
-      allow list: if request.query.limit <= 50;
+      allow list: if true;
       allow create, update, delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // JADUAL KULIAH V2
-    // ════════════════════════════════════════════════════════════════
-    
     match /jadualKuliah/{docId} {
       allow read: if true;
       allow create, update, delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // KATEGORI KULIAH
-    // ════════════════════════════════════════════════════════════════
-    
     match /kategoriKuliah/{docId} {
       allow read: if true;
       allow create, update, delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // DONATIONS
-    // ════════════════════════════════════════════════════════════════
-    
-    match /donations/{docId} {
-      allow read: if isAuth();
-      allow get: if true;
-      allow list: if request.query.limit <= 50;
+    match /quotes/{docId} {
+      allow read: if true;
       allow create, update, delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // MEMBERS (ANAK KARIAH)
-    // ════════════════════════════════════════════════════════════════
-    
+    match /donations/{docId} {
+      allow get: if true;
+      allow list: if true;
+      allow create, update, delete: if isAuth();
+    }
+
     match /anakKariah/{docId} {
       allow read, write: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // KAWASAN (KARIAH AREAS)
-    // ════════════════════════════════════════════════════════════════
-    
+    // ✅ UPDATED — public read for register page
     match /kawasan/{docId} {
-      allow read, write: if isAuth();
+      allow read: if true;
+      allow write: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // ADMIN USERS
-    // ════════════════════════════════════════════════════════════════
-    
     match /adminUsers/{docId} {
       allow read, write: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // NOTIFICATIONS
-    // ════════════════════════════════════════════════════════════════
-    
     match /notifications/{docId} {
-      // Public can read notifications
       allow read: if true;
-      
-      // Authenticated users can create notifications (client-side creates doc first)
       allow create: if isAuth();
-      
-      // Allow update for:
-      // 1. Authenticated users (update readBy)
-      // 2. Server-side updates (API route updates status/counts)
-      //    Note: Admin SDK bypasses rules anyway, but we allow it explicitly
       allow update: if true;
-      
-      // Only authenticated users can delete
       allow delete: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // NOTIFICATION SETTINGS
-    // ════════════════════════════════════════════════════════════════
-    
     match /settings/{docId} {
       allow read, write: if isAuth();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // FCM TOKENS - CRITICAL FOR NOTIFICATIONS
-    // ════════════════════════════════════════════════════════════════
-    
-    // Individual token access - users can only access their own tokens
     match /users/{userId}/fcmTokens/{tokenId} {
-      // Users can read/write their own tokens
       allow read, write: if isAuth() && request.auth.uid == userId;
-      
-      // Validate token structure on create/update
       allow create, update: if isAuth()
         && request.auth.uid == userId
         && request.resource.data.token is string
         && request.resource.data.createdAt is timestamp;
-      
-      // Allow delete for:
-      // 1. Token owner
-      // 2. Server cleanup (Admin SDK bypasses anyway)
       allow delete: if (isAuth() && request.auth.uid == userId) || true;
     }
     
-    // ⚠️ CRITICAL: CollectionGroup query support
-    // This is REQUIRED for API route to query all FCM tokens
-    // The API uses: db.collectionGroup('fcmTokens').get()
-    // 
-    // Note: Firebase Admin SDK bypasses security rules entirely,
-    // so server-side collectionGroup queries will always work.
-    // These rules are for client-side collectionGroup queries (if any).
     match /{path=**}/fcmTokens/{tokenId} {
-      // Allow read for authenticated admin users (if needed client-side)
       allow read: if isAuth();
-      
-      // Server-side (Admin SDK) can always read - bypasses rules
-      // This rule is just for documentation/client-side access
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // DENY ALL OTHER COLLECTIONS
-    // ════════════════════════════════════════════════════════════════
-    
     match /{document=**} {
       allow read, write: if false;
     }

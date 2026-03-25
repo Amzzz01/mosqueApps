@@ -125,13 +125,13 @@ export default function RegisterPage() {
         </div>
 
         {/* Form Section — wide modal */}
-        <section ref={formRef} className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-          <div className="animate-fade-in-up bg-white/95 rounded-3xl shadow-2xl shadow-black/20 border border-white/20">
+        <section ref={formRef} className="max-w-[1200px] mx-auto px-0 lg:px-4 lg:px-6 lg:px-8 py-0 lg:py-8 md:py-12">
+          <div className="animate-fade-in-up lg:bg-white/95 lg:rounded-3xl lg:shadow-2xl lg:shadow-black/20 lg:border lg:border-white/20">
             <KariahMapForm />
           </div>
 
           {/* Footer note */}
-          <p className="text-center text-xs text-emerald-300/50 mt-8 pb-6">
+          <p className="text-center text-xs text-emerald-300/40 mt-6 pb-8 px-4">
             Maklumat anda akan dirahsiakan dan hanya digunakan untuk tujuan pengurusan kariah.
           </p>
         </section>
