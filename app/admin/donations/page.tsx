@@ -1,18 +1,20 @@
 // app/admin/donations/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { collection, query, orderBy, getDocs, Timestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { collection, query, orderBy, getDocs, Timestamp, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase/config';
 import { Donation } from '@/types';
-import { Plus, Download, DollarSign, TrendingUp, Calendar, Edit, Trash2, Users } from 'lucide-react';
+import { Plus, Download, DollarSign, TrendingUp, Calendar, Edit, Trash2, Users, QrCode, Upload, X, Loader2, Trash } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { ms } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import Image from 'next/image';
 
 // Helper function to convert Date | Timestamp to Date
 const toDate = (dateValue: Date | Timestamp): Date => {
@@ -39,6 +41,15 @@ export default function DonationsPage() {
     thisYear: 0,
   });
 
+  // QR code state
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
+  const [qrUploading, setQrUploading] = useState(false);
+  const [qrDeleting, setQrDeleting] = useState(false);
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
+  const [qrFile, setQrFile] = useState<File | null>(null);
+  const qrInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (user && user.role !== 'super_admin' && !user.permissions?.['Derma']?.view) {
       toast.error('Anda tidak mempunyai akses ke modul ini');
@@ -51,7 +62,67 @@ export default function DonationsPage() {
 
   useEffect(() => {
     fetchDonations();
+    fetchQrCode();
   }, []);
+
+  const fetchQrCode = async () => {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'general'));
+      if (snap.exists()) {
+        setQrImageUrl(snap.data().qrCodeUrl || null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch QR code:', err);
+    }
+  };
+
+  const handleQrFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Sila pilih fail imej sahaja');
+      return;
+    }
+    setQrFile(file);
+    setQrPreview(URL.createObjectURL(file));
+  };
+
+  const handleQrUpload = async () => {
+    if (!qrFile) return;
+    setQrUploading(true);
+    try {
+      const storageRef = ref(storage, 'settings/qr-code.jpg');
+      await uploadBytes(storageRef, qrFile);
+      const downloadUrl = await getDownloadURL(storageRef);
+      await setDoc(doc(db, 'settings', 'general'), { qrCodeUrl: downloadUrl }, { merge: true });
+      setQrImageUrl(downloadUrl);
+      setQrFile(null);
+      setQrPreview(null);
+      toast.success('QR Code berjaya dikemas kini');
+    } catch (err) {
+      console.error('QR upload failed:', err);
+      toast.error('Gagal memuat naik QR Code');
+    } finally {
+      setQrUploading(false);
+    }
+  };
+
+  const handleQrDelete = async () => {
+    if (!confirm('Adakah anda pasti mahu memadam QR Code ini?')) return;
+    setQrDeleting(true);
+    try {
+      const storageRef = ref(storage, 'settings/qr-code.jpg');
+      try { await deleteObject(storageRef); } catch {}
+      await setDoc(doc(db, 'settings', 'general'), { qrCodeUrl: null }, { merge: true });
+      setQrImageUrl(null);
+      toast.success('QR Code berjaya dipadam');
+    } catch (err) {
+      console.error('QR delete failed:', err);
+      toast.error('Gagal memadam QR Code');
+    } finally {
+      setQrDeleting(false);
+    }
+  };
 
   useEffect(() => {
     filterDonations();
@@ -376,14 +447,25 @@ export default function DonationsPage() {
           )}
         </div>
 
-        {/* FAB */}
-        <Link
-          href="/admin/donations/new"
-          className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
-        >
-          <Plus size={16} className="text-white" />
-          <span className="text-white text-xs font-bold">Rekod Baru</span>
-        </Link>
+        {/* FABs */}
+        <div className="fixed bottom-5 right-4 flex flex-col items-end gap-2 z-20">
+          {canEdit && (
+            <button
+              onClick={() => setQrModalOpen(true)}
+              className="h-10 px-4 rounded-2xl bg-white border border-slate-200 flex items-center gap-2 shadow-md"
+            >
+              <QrCode size={15} className="text-[#0d7a6b]" />
+              <span className="text-[#0d7a6b] text-xs font-bold">QR Code</span>
+            </button>
+          )}
+          <Link
+            href="/admin/donations/new"
+            className="h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30"
+          >
+            <Plus size={16} className="text-white" />
+            <span className="text-white text-xs font-bold">Rekod Baru</span>
+          </Link>
+        </div>
 
       </div>
 
@@ -414,6 +496,15 @@ export default function DonationsPage() {
             <Download className="h-5 w-5" />
             <span>Export CSV</span>
           </button>
+          {canEdit && (
+            <button
+              onClick={() => setQrModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            >
+              <QrCode className="h-5 w-5" />
+              <span>QR Code</span>
+            </button>
+          )}
           <Link
             href="/admin/donations/new"
             className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
@@ -578,6 +669,125 @@ export default function DonationsPage() {
         </div>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* QR CODE MODAL                          */}
+      {/* ═══════════════════════════════════════ */}
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-teal-600" />
+                <h2 className="text-base font-bold text-gray-900">QR Code Derma</h2>
+              </div>
+              <button
+                onClick={() => { setQrModalOpen(false); setQrFile(null); setQrPreview(null); }}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Current QR */}
+              {qrImageUrl && !qrPreview && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">QR Code Semasa</p>
+                  <div className="relative bg-gray-50 rounded-xl p-4 flex items-center justify-center border border-gray-200">
+                    <Image
+                      src={qrImageUrl}
+                      alt="QR Code"
+                      width={180}
+                      height={180}
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Preview of new upload */}
+              {qrPreview && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide">Pratonton Baru</p>
+                  <div className="relative bg-teal-50 rounded-xl p-4 flex items-center justify-center border border-teal-200">
+                    <Image
+                      src={qrPreview}
+                      alt="Preview"
+                      width={180}
+                      height={180}
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* No QR yet */}
+              {!qrImageUrl && !qrPreview && (
+                <div className="bg-gray-50 rounded-xl p-6 flex flex-col items-center justify-center border border-dashed border-gray-300 gap-2">
+                  <QrCode className="w-10 h-10 text-gray-300" />
+                  <p className="text-sm text-gray-400">Tiada QR Code ditetapkan</p>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={qrInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleQrFileChange}
+              />
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2">
+                {/* Pick / Replace image */}
+                <button
+                  onClick={() => qrInputRef.current?.click()}
+                  disabled={qrUploading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-teal-200 bg-teal-50 text-teal-700 text-sm font-semibold hover:bg-teal-100 transition-colors disabled:opacity-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {qrImageUrl ? 'Ganti QR Code' : 'Pilih Imej QR Code'}
+                </button>
+
+                {/* Save upload */}
+                {qrPreview && (
+                  <button
+                    onClick={handleQrUpload}
+                    disabled={qrUploading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-bold hover:bg-teal-700 transition-colors disabled:opacity-50"
+                  >
+                    {qrUploading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" />Memuat naik...</>
+                    ) : (
+                      <><Upload className="w-4 h-4" />Simpan QR Code</>
+                    )}
+                  </button>
+                )}
+
+                {/* Delete */}
+                {qrImageUrl && !qrPreview && (
+                  <button
+                    onClick={handleQrDelete}
+                    disabled={qrDeleting}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
+                  >
+                    {qrDeleting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" />Memadam...</>
+                    ) : (
+                      <><Trash className="w-4 h-4" />Padam QR Code</>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
