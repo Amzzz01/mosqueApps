@@ -188,6 +188,7 @@ export default function GaleriPage() {
                                 src={url}
                                 alt={`${aktiviti.tajuk} - ${i + 1}`}
                                 fill
+                                sizes="(max-width: 1024px) 50vw, 33vw"
                                 className="object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />

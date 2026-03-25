@@ -298,6 +298,7 @@ export default async function HomePage() {
                           src={aktiviti.gambarUrls[0]}
                           alt={aktiviti.tajuk}
                           fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover"
                           priority={idx === 0}
                         />
