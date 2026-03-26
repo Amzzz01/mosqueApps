@@ -65,7 +65,7 @@ export default function NotificationPermission() {
       {/* Bell button - bottom right */}
       <button
         onClick={() => setShowPrompt(!showPrompt)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-all hover:scale-105 flex items-center justify-center"
+        className="hidden lg:flex fixed bottom-6 right-6 z-50 w-12 h-12 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-all hover:scale-105 items-center justify-center"
         aria-label="Aktifkan notifikasi"
       >
         <Bell className="h-5 w-5" />
@@ -74,7 +74,7 @@ export default function NotificationPermission() {
 
       {/* Prompt popup */}
       {showPrompt && (
-        <div className="fixed bottom-20 right-6 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-72 animate-in fade-in slide-in-from-bottom-2">
+        <div className="hidden lg:block fixed bottom-20 right-6 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-72 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
               <Bell className="h-5 w-5 text-emerald-600" />

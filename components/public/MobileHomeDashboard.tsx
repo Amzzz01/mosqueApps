@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Bell, Megaphone, BookOpen, Heart, ImageIcon, UserPlus, Phone, ChevronRight, UserRoundCog, Download } from 'lucide-react';
+import { Bell, Megaphone, BookOpen, Heart, ImageIcon, UserPlus, Phone, ChevronRight, UserRoundCog, Download, X } from 'lucide-react';
+import { requestNotificationPermission, saveFCMToken } from '@/lib/firebase-messaging';
+import { auth } from '@/lib/firebase/config';
 import QuotesSlideshow from '@/components/public/QuotesSlideshow';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -104,6 +106,15 @@ export default function MobileHomeDashboard() {
   const [, setTick] = useState(0);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<string>('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+      setShowNotifBanner(Notification.permission === 'default');
+    }
+  }, []);
 
   useEffect(() => {
     fetchPrayerTimes('KDH01').then(data => {
@@ -137,6 +148,15 @@ export default function MobileHomeDashboard() {
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  const handleEnableNotification = async () => {
+    const token = await requestNotificationPermission();
+    if (token && auth.currentUser) {
+      await saveFCMToken(auth.currentUser.uid, token);
+    }
+    setNotifPermission(Notification.permission);
+    setShowNotifBanner(false);
+  };
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -276,6 +296,33 @@ export default function MobileHomeDashboard() {
 
       {/* C. White Body */}
       <div className="bg-white px-4 pt-4 pb-6">
+        {/* Notification Banner */}
+        {typeof window !== 'undefined' && 'Notification' in window && notifPermission === 'default' && showNotifBanner && (
+          <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-center gap-3 mb-4">
+            <div className="bg-teal-100 rounded-full w-9 h-9 flex items-center justify-center flex-shrink-0">
+              <Bell className="w-4 h-4 text-teal-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-teal-900">Aktifkan Notifikasi</p>
+              <p className="text-xs text-teal-600 leading-tight">Terima pemberitahuan solat &amp; pengumuman masjid</p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                onClick={() => setShowNotifBanner(false)}
+                className="w-6 h-6 flex items-center justify-center text-teal-400 hover:text-teal-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleEnableNotification}
+                className="bg-teal-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium"
+              >
+                Aktifkan
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* C1. Quick Actions */}
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Akses Pantas</p>
         <div className="grid grid-cols-3 gap-3 mb-6">
