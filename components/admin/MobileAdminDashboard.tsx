@@ -10,12 +10,12 @@ import {
   Bell,
   BookOpen,
   ImageIcon,
-  CheckCircle,
   Clock,
   FileText,
   UserCheck,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { RecentActivityItem } from '@/types';
 
 const DAYS_MY = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
 const MONTHS_MY = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
@@ -36,6 +36,7 @@ interface Props {
   stats: Stats;
   loading: boolean;
   userName: string;
+  recentActivities: RecentActivityItem[];
 }
 
 const quickActions = [
@@ -47,21 +48,24 @@ const quickActions = [
   { label: 'Notifikasi', href: '/admin/settings/notifications', bg: 'bg-gray-100', iconBg: 'bg-gray-500', icon: Bell },
 ];
 
-const recentActivity = [
-  { icon: UserCheck, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', title: 'Ahli baharu didaftarkan', subtitle: 'Ahmad bin Yusof', time: '2 minit lalu' },
-  { icon: DollarSign, iconBg: 'bg-teal-100', iconColor: 'text-teal-600', title: 'Sumbangan diterima', subtitle: 'RM 200.00', time: '15 minit lalu' },
-  { icon: FileText, iconBg: 'bg-purple-100', iconColor: 'text-purple-600', title: 'Pengumuman diterbitkan', subtitle: 'Jadual Kuliah Ramadan', time: '1 jam lalu' },
-  { icon: CheckCircle, iconBg: 'bg-green-100', iconColor: 'text-green-600', title: 'Jadual kuliah dikemaskini', subtitle: 'Ustaz Hafizi — Ahad', time: '3 jam lalu' },
-];
+function ActivityIcon({ type }: { type: RecentActivityItem['type'] }) {
+  if (type === 'member') return <UserCheck className="w-4 h-4 text-blue-600" />;
+  return <FileText className="w-4 h-4 text-purple-600" />;
+}
 
-export default function MobileAdminDashboard({ stats, loading, userName }: Props) {
+function activityIconBg(type: RecentActivityItem['type']) {
+  if (type === 'member') return 'bg-blue-100';
+  return 'bg-purple-100';
+}
+
+export default function MobileAdminDashboard({ stats, loading, userName, recentActivities }: Props) {
   return (
     <div className="lg:hidden flex flex-col min-h-screen bg-slate-50">
 
       {/* 1. GREETING BANNER */}
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-4 pt-6 pb-8">
         <div className="bg-white/10 backdrop-blur rounded-2xl px-4 py-4">
-          <p className="text-teal-100 text-xs mb-0.5">Selamat kembali 👋</p>
+          <p className="text-teal-100 text-xs mb-0.5">Selamat kembali</p>
           <p className="text-white font-extrabold text-lg leading-tight">{userName || 'Administrator'}</p>
           <p className="text-teal-200 text-xs mt-1">{getMalayDate()}</p>
         </div>
@@ -78,7 +82,6 @@ export default function MobileAdminDashboard({ stats, loading, userName }: Props
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {/* Total Members */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -90,7 +93,6 @@ export default function MobileAdminDashboard({ stats, loading, userName }: Props
               <p className="text-xl font-extrabold text-slate-900">{stats.totalMembers.toLocaleString()}</p>
             </div>
 
-            {/* Total Donations */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-9 h-9 bg-teal-100 rounded-xl flex items-center justify-center">
@@ -102,7 +104,6 @@ export default function MobileAdminDashboard({ stats, loading, userName }: Props
               <p className="text-xl font-extrabold text-slate-900">{formatCurrency(stats.totalDonations)}</p>
             </div>
 
-            {/* Active Announcements */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -113,7 +114,6 @@ export default function MobileAdminDashboard({ stats, loading, userName }: Props
               <p className="text-xl font-extrabold text-slate-900">{stats.activeAnnouncements}</p>
             </div>
 
-            {/* Monthly Donations */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -157,16 +157,34 @@ export default function MobileAdminDashboard({ stats, loading, userName }: Props
               Lihat semua →
             </Link>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            {recentActivity.map((item, i) => {
-              const Icon = item.icon;
-              return (
+
+          {loading ? (
+            <div className="bg-white rounded-2xl shadow-sm p-4">
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="animate-pulse flex items-center gap-3">
+                    <div className="w-9 h-9 bg-gray-200 rounded-xl flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-gray-200 rounded w-3/4" />
+                      <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : recentActivities.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm p-6 text-center">
+              <p className="text-sm text-slate-400">Tiada aktiviti terkini</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              {recentActivities.map((item, i) => (
                 <div
                   key={i}
-                  className={`flex items-center gap-3 px-4 py-3 ${i < recentActivity.length - 1 ? 'border-b border-gray-50' : ''}`}
+                  className={`flex items-center gap-3 px-4 py-3 ${i < recentActivities.length - 1 ? 'border-b border-gray-50' : ''}`}
                 >
-                  <div className={`w-9 h-9 ${item.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-4 h-4 ${item.iconColor}`} />
+                  <div className={`w-9 h-9 ${activityIconBg(item.type)} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                    <ActivityIcon type={item.type} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-800 leading-tight">{item.title}</p>
@@ -177,9 +195,9 @@ export default function MobileAdminDashboard({ stats, loading, userName }: Props
                     <p className="text-[10px] text-slate-400">{item.time}</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

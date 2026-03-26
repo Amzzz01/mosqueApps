@@ -2,6 +2,15 @@
 
 import { Timestamp } from 'firebase/firestore';
 
+// Dashboard recent activity
+export interface RecentActivityItem {
+  type: 'member' | 'announcement';
+  title: string;
+  subtitle: string;
+  time: string;
+  timestamp: number;
+}
+
 // Donation Types
 export interface Donation {
   id?: string;
