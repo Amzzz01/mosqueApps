@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,6 +15,10 @@ import {
   X,
   Trash2,
   Edit,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown,
+  Download,
 } from 'lucide-react';
 import { getAllAnakKariah, softDeleteAnakKariah, toggleMemberStatus } from '@/lib/anakKariah';
 import { getAllKawasan } from '@/lib/kawasan';
@@ -23,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AkKariahTable from '@/components/admin/anak-kariah/AkKariahTable';
 import AkKariahDetails from '@/components/admin/anak-kariah/AkKariahDetails';
 import DeleteConfirmation from '@/components/admin/anak-kariah/DeleteConfirmation';
+import { exportAnakKariahToExcel, exportAnakKariahToPDF } from '@/lib/exportUtils';
 import toast from 'react-hot-toast';
 
 const ITEMS_PER_PAGE = 15;
@@ -48,6 +53,30 @@ export default function AnakKariahListPage() {
   const [deleteTarget, setDeleteTarget] = useState<AnakKariah | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Export dropdowns
+  const [excelDropdownOpen, setExcelDropdownOpen] = useState(false);
+  const [pdfDropdownOpen, setPdfDropdownOpen] = useState(false);
+  const [mobileExportOpen, setMobileExportOpen] = useState(false);
+  const excelDropdownRef = useRef<HTMLDivElement>(null);
+  const pdfDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (excelDropdownRef.current && !excelDropdownRef.current.contains(e.target as Node)) {
+        setExcelDropdownOpen(false);
+      }
+      if (pdfDropdownRef.current && !pdfDropdownRef.current.contains(e.target as Node)) {
+        setPdfDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (user && user.role !== 'super_admin' && !user.permissions?.['Pengurusan Ahli']?.view) {
@@ -116,9 +145,10 @@ export default function AnakKariahListPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Reset page when filters change
+  // Reset page + selectedIds when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [searchTerm, statusFilter, kawasanFilter]);
 
   // Stats
@@ -128,7 +158,64 @@ export default function AnakKariahListPage() {
     tidakAktif: allMembers.filter((m) => m.status === 'tidak_aktif').length,
   }), [allMembers]);
 
-  // Handlers
+  // Selection derived values
+  const allSelected = paginatedMembers.length > 0 && paginatedMembers.every(m => selectedIds.has(m.id));
+  const someSelected = paginatedMembers.some(m => selectedIds.has(m.id)) && !allSelected;
+
+  // Selection handlers
+  const handleSelectAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        paginatedMembers.forEach(m => next.delete(m.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        paginatedMembers.forEach(m => next.add(m.id));
+        return next;
+      });
+    }
+  }, [allSelected, paginatedMembers]);
+
+  const handleSelectOne = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  // Export handlers
+  const handleExportExcel = useCallback(() => {
+    exportAnakKariahToExcel(filteredMembers);
+    setExcelDropdownOpen(false);
+  }, [filteredMembers]);
+
+  const handleExportPDF = useCallback(() => {
+    exportAnakKariahToPDF(filteredMembers);
+    setPdfDropdownOpen(false);
+  }, [filteredMembers]);
+
+  const handleExportSelectedExcel = useCallback(() => {
+    const selected = filteredMembers.filter(m => selectedIds.has(m.id));
+    exportAnakKariahToExcel(selected, `Anak_Kariah_Terpilih_${new Date().toISOString().split('T')[0]}.xlsx`);
+    setExcelDropdownOpen(false);
+  }, [filteredMembers, selectedIds]);
+
+  const handleExportSelectedPDF = useCallback(() => {
+    const selected = filteredMembers.filter(m => selectedIds.has(m.id));
+    exportAnakKariahToPDF(selected, `Anak_Kariah_Terpilih_${new Date().toISOString().split('T')[0]}.pdf`, 'Senarai Anak Kariah Terpilih');
+    setPdfDropdownOpen(false);
+  }, [filteredMembers, selectedIds]);
+
+  // Existing handlers
   const handleViewDetails = (member: AnakKariah) => {
     setSelectedMember(member);
     setDetailsOpen(true);
@@ -379,14 +466,58 @@ export default function AnakKariahListPage() {
           )}
         </div>
 
-        {/* FAB */}
+        {/* Export FAB */}
+        <button
+          onClick={() => setMobileExportOpen(true)}
+          className="fixed bottom-20 right-4 h-11 px-4 rounded-2xl bg-white border border-slate-200 flex items-center gap-2 shadow-md z-20"
+          title="Export"
+        >
+          <Download size={16} className="text-[#0d7a6b]" />
+          <span className="text-[#0d7a6b] text-xs font-bold">Muat Turun Data</span>
+        </button>
+
+        {/* Tambah FAB */}
         <Link
           href="/admin/pengurusan-ahli/anak-kariah/tambah"
           className="fixed bottom-5 right-4 h-11 px-4 rounded-2xl bg-gradient-to-r from-[#0d7a6b] to-[#085048] flex items-center gap-2 shadow-lg shadow-teal-600/30 z-20"
         >
           <Plus size={16} className="text-white" />
-          <span className="text-white text-xs font-bold">Tambah Ahli</span>
+          <span className="text-white text-xs font-bold">Tambah Anak Kariah</span>
         </Link>
+
+        {/* Mobile Export Bottom Sheet */}
+        {mobileExportOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/40 z-30"
+              onClick={() => setMobileExportOpen(false)}
+            />
+            <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-40 p-5 space-y-3 shadow-2xl">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+              <p className="text-sm font-semibold text-gray-700 mb-3">Export Senarai</p>
+              <button
+                onClick={() => { exportAnakKariahToExcel(filteredMembers); setMobileExportOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 text-green-700 rounded-xl text-sm font-medium"
+              >
+                <FileSpreadsheet size={18} />
+                Export Excel ({filteredMembers.length} rekod)
+              </button>
+              <button
+                onClick={() => { exportAnakKariahToPDF(filteredMembers); setMobileExportOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 text-red-700 rounded-xl text-sm font-medium"
+              >
+                <FileText size={18} />
+                Export PDF ({filteredMembers.length} rekod)
+              </button>
+              <button
+                onClick={() => setMobileExportOpen(false)}
+                className="w-full px-4 py-3 text-gray-500 text-sm font-medium"
+              >
+                Batal
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Modals */}
         {detailsOpen && selectedMember && (
@@ -418,13 +549,73 @@ export default function AnakKariahListPage() {
             <h1 className="text-3xl font-bold text-gray-900">Senarai Anak Kariah</h1>
             <p className="text-gray-600 mt-1">Urus pendaftaran ahli kariah masjid</p>
           </div>
-          <Link
-            href="/admin/pengurusan-ahli/anak-kariah/tambah"
-            className="inline-flex items-center gap-2 bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition-colors font-medium self-start"
-          >
-            <Plus className="w-5 h-5" />
-            Tambah Anak Kariah
-          </Link>
+          <div className="flex items-center gap-2 self-start flex-wrap">
+            {/* Export Excel Dropdown */}
+            <div className="relative" ref={excelDropdownRef}>
+              <button
+                onClick={() => { setExcelDropdownOpen(o => !o); setPdfDropdownOpen(false); }}
+                className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export Excel
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {excelDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  <button
+                    onClick={handleExportExcel}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Export Semua (Filtered) — {filteredMembers.length} rekod
+                  </button>
+                  <button
+                    onClick={handleExportSelectedExcel}
+                    disabled={selectedIds.size === 0}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Export Terpilih ({selectedIds.size} dipilih)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Export PDF Dropdown */}
+            <div className="relative" ref={pdfDropdownRef}>
+              <button
+                onClick={() => { setPdfDropdownOpen(o => !o); setExcelDropdownOpen(false); }}
+                className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Export PDF
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {pdfDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Export Semua (Filtered) — {filteredMembers.length} rekod
+                  </button>
+                  <button
+                    onClick={handleExportSelectedPDF}
+                    disabled={selectedIds.size === 0}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Export Terpilih ({selectedIds.size} dipilih)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Link
+              href="/admin/pengurusan-ahli/anak-kariah/tambah"
+              className="inline-flex items-center gap-2 bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition-colors font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              Tambah Anak Kariah
+            </Link>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -465,7 +656,7 @@ export default function AnakKariahListPage() {
         </div>
 
         {/* Search + Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search */}
             <div className="relative flex-1">
@@ -522,6 +713,38 @@ export default function AnakKariahListPage() {
           )}
         </div>
 
+        {/* Selection Toolbar */}
+        {selectedIds.size > 0 && (
+          <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-medium text-teal-800">
+              ✓ {selectedIds.size} ahli dipilih
+            </span>
+            <div className="flex items-center gap-2 ml-auto flex-wrap">
+              <button
+                onClick={handleExportSelectedExcel}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Export Excel Terpilih
+              </button>
+              <button
+                onClick={handleExportSelectedPDF}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Export PDF Terpilih
+              </button>
+              <button
+                onClick={handleClearSelection}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Batal Pilihan
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Table */}
         <AkKariahTable
           members={paginatedMembers}
@@ -532,6 +755,11 @@ export default function AnakKariahListPage() {
           onToggleStatus={handleToggleStatus}
           canEdit={canEdit}
           canDelete={canDelete}
+          selectedIds={selectedIds}
+          onSelectAll={handleSelectAll}
+          onSelectOne={handleSelectOne}
+          allSelected={allSelected}
+          someSelected={someSelected}
         />
 
         {/* Pagination */}
