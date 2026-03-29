@@ -1,10 +1,8 @@
 [{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.namasyarikat.mosqueapps",
-    "sha256_cert_fingerprints": [
-      "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"
-    ]
-  }
-}]
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.mosque_apps.twa",
+        "sha256_cert_fingerprints": ["EF:58:DA:8B:CD:07:B7:51:80:A2:43:D5:05:14:37:0C:D5:DA:65:BD:E2:9E:DF:E7:0B:51:E9:17:30:B6:F5:C7"]
+      }
+    }]
