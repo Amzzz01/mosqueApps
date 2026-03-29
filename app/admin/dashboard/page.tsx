@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Users, DollarSign, Megaphone, TrendingUp, AlertCircle, UserCheck, FileText } from 'lucide-react';
+import { Users, DollarSign, Megaphone, TrendingUp, AlertCircle, UserCheck, FileText, HandCoins } from 'lucide-react';
 import { collection, query, where, getDocs, getCountFromServer, Timestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         const recentMembersQ = query(
           collection(db, 'anakKariah'),
           orderBy('createdAt', 'desc'),
-          limit(4)
+          limit(5)
         );
         const recentMembersSnap = await getDocs(recentMembersQ);
         recentMembersSnap.docs.forEach((doc) => {
@@ -114,6 +114,7 @@ export default function AdminDashboard() {
             subtitle: d.namaPenuh || '—',
             time: relativeTime(ts),
             timestamp: ts ? ts.toDate().getTime() : 0,
+            addedBy: d.createdByName || (d.createdBy && d.createdBy !== 'admin' ? d.createdBy : 'Admin'),
           });
         });
 
@@ -121,7 +122,7 @@ export default function AdminDashboard() {
         const recentAnnouncementsQ = query(
           collection(db, 'announcements'),
           orderBy('updatedAt', 'desc'),
-          limit(4)
+          limit(5)
         );
         const recentAnnouncementsSnap = await getDocs(recentAnnouncementsQ);
         recentAnnouncementsSnap.docs.forEach((doc) => {
@@ -133,12 +134,38 @@ export default function AdminDashboard() {
             subtitle: d.title || '—',
             time: relativeTime(ts),
             timestamp: ts ? ts.toDate().getTime() : 0,
+            addedBy: d.author || 'Admin',
           });
         });
 
-        // Sort by most recent, take top 5
+        // Recent donations
+        try {
+          const recentDonationsQ = query(
+            collection(db, 'donations'),
+            orderBy('createdAt', 'desc'),
+            limit(5)
+          );
+          const recentDonationsSnap = await getDocs(recentDonationsQ);
+          recentDonationsSnap.docs.forEach((donDoc) => {
+            const d = donDoc.data();
+            const ts = d.createdAt as Timestamp | null;
+            const amount = d.amount ? `RM ${Number(d.amount).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}` : '—';
+            activities.push({
+              type: 'donation',
+              title: 'Derma direkodkan',
+              subtitle: `${d.donorName || 'Tanpa Nama'} · ${amount}`,
+              time: relativeTime(ts),
+              timestamp: ts ? ts.toDate().getTime() : 0,
+              addedBy: d.createdByName || (d.createdBy ? 'Admin' : 'Admin'),
+            });
+          });
+        } catch {
+          // Permission denied for donations
+        }
+
+        // Sort by most recent, take top 8
         activities.sort((a, b) => b.timestamp - a.timestamp);
-        setRecentActivities(activities.slice(0, 5));
+        setRecentActivities(activities.slice(0, 8));
       } catch {
         setRecentActivities([]);
       }
@@ -244,17 +271,22 @@ export default function AdminDashboard() {
               {recentActivities.map((item, i) => (
                 <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    item.type === 'member' ? 'bg-blue-100' : 'bg-purple-100'
+                    item.type === 'member' ? 'bg-blue-100' : item.type === 'donation' ? 'bg-teal-100' : 'bg-purple-100'
                   }`}>
                     {item.type === 'member' ? (
                       <UserCheck className="w-4 h-4 text-blue-600" />
+                    ) : item.type === 'donation' ? (
+                      <HandCoins className="w-4 h-4 text-teal-600" />
                     ) : (
                       <FileText className="w-4 h-4 text-purple-600" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 leading-tight">{item.title}</p>
-                    <p className="text-xs text-gray-400 truncate">{item.subtitle}</p>
+                    <p className="text-xs text-gray-500 truncate">{item.subtitle}</p>
+                    {item.addedBy && (
+                      <p className="text-[10px] text-gray-400 truncate">oleh {item.addedBy}</p>
+                    )}
                   </div>
                   <p className="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">{item.time}</p>
                 </div>

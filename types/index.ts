@@ -4,11 +4,12 @@ import { Timestamp } from 'firebase/firestore';
 
 // Dashboard recent activity
 export interface RecentActivityItem {
-  type: 'member' | 'announcement';
+  type: 'member' | 'announcement' | 'donation';
   title: string;
   subtitle: string;
   time: string;
   timestamp: number;
+  addedBy?: string;
 }
 
 // Donation Types
@@ -23,6 +24,7 @@ export interface Donation {
   notes?: string;
   date: Date | Timestamp;
   createdBy: string; // Admin ID
+  createdByName?: string; // Admin display name
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
 }

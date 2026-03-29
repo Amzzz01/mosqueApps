@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Save, X, User, CircleDollarSign, Calendar, Tag, CreditCard, FileText, HeartHandshake } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function NewDonationPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     donorName: '',
@@ -44,7 +46,10 @@ export default function NewDonationPage() {
         type: formData.type,
         paymentMethod: formData.paymentMethod,
         notes: formData.notes,
+        createdBy: user?.uid || '',
+        createdByName: user?.displayName || user?.email || 'Admin',
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       toast.success('Derma berjaya direkodkan');

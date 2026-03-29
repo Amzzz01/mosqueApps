@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Search, Pencil, Trash2, Quote as QuoteIcon, BookOpen, BookMarked, Users, Layers } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Quote as QuoteIcon, BookOpen, BookMarked, Users, Layers, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Quote, QUOTE_CATEGORIES, subscribeToQuotes, toggleQuoteStatus, deleteQuote } from '@/lib/db/quotes';
 import QuoteModal from './QuoteModal';
@@ -89,20 +89,32 @@ export default function QuotesPage() {
   return (
     <>
       {/* ── MOBILE ── */}
-      <div className="lg:hidden min-h-screen bg-gray-50">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-20 bg-emerald-600 px-4 py-3 flex items-center justify-between">
-          <p className="text-white font-bold text-base">Pengurusan Quotes</p>
-          <button
-            onClick={() => { setEditingQuote(null); setShowModal(true); }}
-            className="flex items-center gap-1.5 bg-white/20 border border-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl"
-          >
-            <Plus size={13} />
-            Tambah
-          </button>
+      <div className="lg:hidden flex flex-col bg-slate-100 min-h-screen">
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-br from-[#0d7a6b] to-[#0a9e87] px-4 pt-4 pb-5 flex items-end justify-between flex-shrink-0">
+          <div>
+            <button
+              type="button"
+              onClick={() => router.push('/admin/dashboard')}
+              className="flex items-center gap-1.5 text-white/65 text-[10px] font-semibold mb-2"
+            >
+              <ArrowLeft size={11} />
+              Kembali
+            </button>
+            <h1 className="text-white text-2xl font-extrabold tracking-tight leading-tight">
+              Senarai Quotes
+            </h1>
+            <p className="text-white/60 text-[10px] mt-1">Urus kata-kata hikmah jemaah</p>
+          </div>
+          <div className="bg-white/12 border border-white/20 rounded-2xl px-3 py-3 text-center flex-shrink-0 ml-3">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-1">
+              <QuoteIcon size={17} className="text-white" />
+            </div>
+            <p className="text-white/55 text-[9px]">Petikan</p>
+          </div>
         </div>
 
-        <div className="px-4 py-3 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-28 space-y-4">
           {/* Stats 2x2 */}
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-green-50 rounded-xl p-3 flex items-center gap-2">
@@ -211,6 +223,16 @@ export default function QuotesPage() {
             </div>
           )}
         </div>
+
+        {/* Floating Action Button */}
+        <button
+          type="button"
+          onClick={() => { setEditingQuote(null); setShowModal(true); }}
+          className="fixed bottom-6 right-4 lg:hidden z-30 px-5 h-14 rounded-full bg-gradient-to-r from-[#0d7a6b] to-[#085048] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-[0_8px_16px_rgba(13,122,107,0.3)] active:scale-95 transition-transform"
+        >
+          <Plus size={20} />
+          Tambah Quotes
+        </button>
       </div>
 
       {/* ── DESKTOP ── */}
