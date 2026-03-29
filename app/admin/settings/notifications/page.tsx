@@ -173,7 +173,12 @@ export default function NotificationsPage() {
     setCleaning(true);
     setCleanupResult(null);
     try {
-      const res = await fetch('/api/notifications/cleanup');
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/notifications/cleanup', {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
       const data = await res.json();
       if (res.ok) {
         setCleanupResult(data);

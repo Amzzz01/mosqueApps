@@ -4,7 +4,7 @@ import {
   query, orderBy, limit, where, serverTimestamp, Timestamp,
   onSnapshot, Unsubscribe,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { auth, db } from '@/lib/firebase/config';
 
 // ─── Types ───
 export interface NotificationData {
@@ -101,9 +101,13 @@ export async function sendNotification(data: {
 
   // Call API to send — pass notifId so API updates this doc instead of creating a new one
   try {
+    const token = await auth.currentUser?.getIdToken();
     const res = await fetch('/api/notifications/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({
         title: data.title,
         body: data.body,

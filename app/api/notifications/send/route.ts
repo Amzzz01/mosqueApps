@@ -2,7 +2,7 @@
 // DATA-ONLY payload — service worker handles notification display.
 // This avoids conflicts with Firebase SDK intercepting the notification key.
 import { NextResponse } from 'next/server';
-import { getAdminMessaging, getAdminFirestore } from '@/lib/firebase-admin';
+import { getAdminMessaging, getAdminFirestore, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 interface TokenError {
@@ -47,12 +47,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // ─── Quiet Hours Check ───
-    // Cron routes bypass quiet hours via x-cron-secret header
+    // ─── Authentication Check ───
+    // Cron routes bypass quiet hours and auth via x-cron-secret header
     const cronSecret = request.headers.get('x-cron-secret');
     const isCronBypass = cronSecret && cronSecret === process.env.CRON_SECRET;
 
     if (!isCronBypass) {
+      const authHeader = request.headers.get('authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn('[API/notifications] Missing or invalid authorization header');
+        return NextResponse.json({ error: 'Pengesahan diperlukan (Authentication required)' }, { status: 401 });
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      try {
+        const decodedToken = await getAdminAuth().verifyIdToken(token);
+        console.log('[API/notifications] Authenticated user:', decodedToken.email || decodedToken.uid);
+      } catch (err) {
+        console.error('[API/notifications] Token verification failed:', err);
+        return NextResponse.json({ error: 'Token pengesahan tidak sah (Invalid token)' }, { status: 403 });
+      }
+
+      // ─── Quiet Hours Check ───
       const db = getAdminFirestore();
       const settingsSnap = await db.collection('settings').doc('notifications').get();
       const settings = settingsSnap.data() || {};

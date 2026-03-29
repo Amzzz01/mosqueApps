@@ -1,6 +1,6 @@
 // app/api/notifications/cleanup/route.ts
 import { NextResponse } from 'next/server';
-import { getAdminMessaging, getAdminFirestore } from '@/lib/firebase-admin';
+import { getAdminMessaging, getAdminFirestore, getAdminAuth } from '@/lib/firebase-admin';
 
 interface TokenResult {
   path: string;
@@ -10,8 +10,20 @@ interface TokenResult {
   deleted: boolean;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Pengesahan diperlukan (Authentication required)' }, { status: 401 });
+    }
+
+    const tokenHeader = authHeader.split('Bearer ')[1];
+    try {
+      await getAdminAuth().verifyIdToken(tokenHeader);
+    } catch (err) {
+      return NextResponse.json({ error: 'Token pengesahan tidak sah (Invalid token)' }, { status: 403 });
+    }
+
     const messaging = getAdminMessaging();
     const db = getAdminFirestore();
 
