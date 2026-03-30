@@ -118,7 +118,7 @@ export default function AdminLayout({
     <AuthProvider>
       <ProtectedRoute>
         <FCMProvider />
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="flex h-screen overflow-hidden bg-gray-50">
           {/* Sidebar */}
           <AdminSidebar
             collapsed={mounted ? collapsed : false}
@@ -128,7 +128,7 @@ export default function AdminLayout({
           />
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Header */}
             <header className="bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-lg sticky top-0 z-30">
               <div className="px-4 py-3 flex items-center justify-between">
@@ -178,7 +178,7 @@ export default function AdminLayout({
             </header>
 
             {/* Page Content */}
-            <main className="flex-1">
+            <main className="flex-1 overflow-y-auto">
               {children}
             </main>
           </div>
