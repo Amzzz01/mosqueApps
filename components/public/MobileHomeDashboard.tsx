@@ -113,8 +113,9 @@ export default function MobileHomeDashboard() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
+      const isDismissed = localStorage.getItem('hideNotifBanner') === 'true';
       setNotifPermission(Notification.permission);
-      setShowNotifBanner(Notification.permission === 'default');
+      setShowNotifBanner(Notification.permission === 'default' && !isDismissed);
     }
   }, []);
 
@@ -152,6 +153,7 @@ export default function MobileHomeDashboard() {
   }, []);
 
   const handleEnableNotification = async () => {
+    localStorage.setItem('hideNotifBanner', 'true');
     const token = await requestNotificationPermission();
     if (token && auth.currentUser) {
       await saveFCMToken(auth.currentUser.uid, token);
@@ -310,7 +312,10 @@ export default function MobileHomeDashboard() {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
-                onClick={() => setShowNotifBanner(false)}
+                onClick={() => {
+                  localStorage.setItem('hideNotifBanner', 'true');
+                  setShowNotifBanner(false);
+                }}
                 className="w-6 h-6 flex items-center justify-center text-teal-400 hover:text-teal-600"
               >
                 <X className="w-3.5 h-3.5" />
