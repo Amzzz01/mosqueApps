@@ -119,6 +119,32 @@ export default function MobileHomeDashboard() {
     }
   }, []);
 
+  // Auto-save FCM token on load if permission already granted.
+  // Ensures APK users who previously accepted notifications get registered
+  // without needing to tap the banner again.
+  useEffect(() => {
+    async function autoRegisterToken() {
+      if (typeof window === 'undefined') return;
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+      try {
+        const token = await requestNotificationPermission();
+        if (!token) return;
+        if (auth.currentUser) {
+          await saveFCMToken(auth.currentUser.uid, token);
+        } else {
+          await saveGuestFCMToken(token);
+        }
+        console.log('[FCM] Auto-registered token on page load');
+      } catch (err) {
+        console.warn('[FCM] Auto-register failed silently:', err);
+      }
+    }
+    // Small delay to let Firebase auth state settle first
+    const timer = setTimeout(autoRegisterToken, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     fetchPrayerTimes('KDH01').then(data => {
       setPrayerTimes(data);
