@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isAuth() {
       return request.auth != null;
     }
@@ -42,14 +42,16 @@ service cloud.firestore {
     match /donations/{docId} {
       allow get: if true;
       allow list: if true;
-      allow create, update, delete: if isAuth();
+      allow create: if true;           // public can submit donations
+      allow update, delete: if isAuth();
     }
 
     match /anakKariah/{docId} {
-      allow read, write: if isAuth();
+      allow create: if true;           // public registration
+      allow read, update, delete: if isAuth();
     }
 
-    // ✅ UPDATED — public read for register page
+    // Public read enabled for register page
     match /kawasan/{docId} {
       allow read: if true;
       allow write: if isAuth();
@@ -67,20 +69,26 @@ service cloud.firestore {
     }
 
     match /settings/{docId} {
-      allow read, write: if isAuth();
+      allow read: if true;             // public can read settings (e.g. derma page)
+      allow write: if isAuth();
     }
 
+    // Authenticated users' FCM tokens (multi-device support)
     match /users/{userId}/fcmTokens/{tokenId} {
       allow read, write: if isAuth() && request.auth.uid == userId;
-      allow create, update: if isAuth()
-        && request.auth.uid == userId
-        && request.resource.data.token is string
-        && request.resource.data.createdAt is timestamp;
       allow delete: if (isAuth() && request.auth.uid == userId) || true;
     }
-    
+
+    // CollectionGroup query support for FCM tokens
     match /{path=**}/fcmTokens/{tokenId} {
       allow read: if isAuth();
+    }
+
+    // Guest/public FCM tokens — allows ANY device without login to register for notifications
+    match /guestTokens/{tokenId} {
+      allow create, update: if true
+        && request.resource.data.token is string;
+      allow read, delete: if false;    // Only Admin SDK (server) can read/delete
     }
 
     match /{document=**} {

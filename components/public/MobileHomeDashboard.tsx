@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, Megaphone, BookOpen, Heart, ImageIcon, UserPlus, Phone, ChevronRight, UserRoundCog, Download, X } from 'lucide-react';
-import { requestNotificationPermission, saveFCMToken } from '@/lib/firebase-messaging';
+import { requestNotificationPermission, saveFCMToken, saveGuestFCMToken } from '@/lib/firebase-messaging';
 import { auth } from '@/lib/firebase/config';
 import QuotesSlideshow from '@/components/public/QuotesSlideshow';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
@@ -155,8 +155,14 @@ export default function MobileHomeDashboard() {
   const handleEnableNotification = async () => {
     localStorage.setItem('hideNotifBanner', 'true');
     const token = await requestNotificationPermission();
-    if (token && auth.currentUser) {
-      await saveFCMToken(auth.currentUser.uid, token);
+    if (token) {
+      if (auth.currentUser) {
+        // Logged-in admin/user — save under their UID
+        await saveFCMToken(auth.currentUser.uid, token);
+      } else {
+        // Public/guest user — save to guestTokens collection
+        await saveGuestFCMToken(token);
+      }
     }
     setNotifPermission(Notification.permission);
     setShowNotifBanner(false);

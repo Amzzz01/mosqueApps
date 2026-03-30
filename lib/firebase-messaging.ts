@@ -223,6 +223,27 @@ export async function saveFCMToken(uid: string, token: string): Promise<void> {
 }
 
 /**
+ * Save FCM token for a GUEST / public (non-authenticated) user.
+ * Saves to /guestTokens/{token} so the notification sender can reach all devices.
+ */
+export async function saveGuestFCMToken(token: string): Promise<void> {
+  console.log('[FCM] Saving guest token...');
+  try {
+    const tokenDocRef = doc(db, 'guestTokens', token);
+    await setDoc(tokenDocRef, {
+      token,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      userAgent: navigator.userAgent,
+      platform: navigator.platform || 'unknown',
+    }, { merge: true });
+    console.log('[FCM] Guest token saved successfully');
+  } catch (err) {
+    console.error('[FCM] Failed to save guest token:', err);
+  }
+}
+
+/**
  * Listen for foreground messages.
  * Returns a cleanup function.
  */

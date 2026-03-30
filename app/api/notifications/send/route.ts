@@ -159,14 +159,20 @@ export async function POST(request: Request) {
     } else {
       // ─── Collect and deduplicate tokens ───
       console.log('[FCM] Querying fcmTokens from Firestore...');
-      const tokensSnap = await db.collectionGroup('fcmTokens').get();
+      const [tokensSnap, guestSnap] = await Promise.all([
+        db.collectionGroup('fcmTokens').get(),
+        db.collection('guestTokens').get(),
+      ]);
 
       const tokenSet = new Set<string>();
       const tokenSources: Record<string, string> = {};
       const tokenRefs: Record<string, FirebaseFirestore.DocumentReference> = {};
       const duplicateRefs: FirebaseFirestore.DocumentReference[] = [];
 
-      tokensSnap.forEach((docSnap) => {
+      const allDocs = [...tokensSnap.docs, ...guestSnap.docs];
+      console.log(`[FCM] Raw docs: ${tokensSnap.size} user tokens + ${guestSnap.size} guest tokens`);
+
+      allDocs.forEach((docSnap) => {
         const token = docSnap.data().token;
         const path = docSnap.ref.path;
         if (!token) {
