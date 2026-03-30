@@ -108,6 +108,8 @@ export default function MobileHomeDashboard() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [showNotifBanner, setShowNotifBanner] = useState(false);
   const [notifPermission, setNotifPermission] = useState<string>('');
+  const [showInstallOptions, setShowInstallOptions] = useState(false);
+  const [showApkGuide, setShowApkGuide] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -343,8 +345,8 @@ export default function MobileHomeDashboard() {
           })}
           {!isInstalled && (
             <div
-              onClick={handleInstall}
-              className={`bg-indigo-50 rounded-2xl p-3 text-center cursor-pointer active:scale-95 transition-transform ${!deferredPrompt ? 'opacity-60' : ''}`}
+              onClick={() => setShowInstallOptions(true)}
+              className={`bg-indigo-50 rounded-2xl p-3 text-center cursor-pointer active:scale-95 transition-transform hover:bg-indigo-100`}
             >
               <div className="w-8 h-8 bg-indigo-600 rounded-xl mx-auto mb-1.5 flex items-center justify-center">
                 <Download className="w-4 h-4 text-white" />
@@ -397,6 +399,100 @@ export default function MobileHomeDashboard() {
 
       {/* D. Quotes Slideshow */}
       <QuotesSlideshow />
+
+      {/* Install Options Modal */}
+      {showInstallOptions && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] p-4" onClick={() => setShowInstallOptions(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-gray-900">Pilih Versi Aplikasi</h3>
+              <button onClick={() => setShowInstallOptions(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Pilih versi aplikasi yang anda ingin pasang:
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowInstallOptions(false);
+                  handleInstall();
+                }}
+                disabled={!deferredPrompt}
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all flex items-start gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600 shrink-0">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Aplikasi Web (PWA)</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Sesuai untuk semua peranti (Tidak memakan memori, terus dari pelayar)</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  window.location.href = "/downloads/al-falah-app.apk";
+                  setShowInstallOptions(false);
+                  setShowApkGuide(true);
+                }}
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all flex items-start gap-3"
+              >
+                <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 shrink-0">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Aplikasi Android (APK)</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Versi Android Penuh (Sila benarkan 'Unknown Sources' semasa memasang)</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* APK Install Guide Modal */}
+      {showApkGuide && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] p-4" onClick={() => setShowApkGuide(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-gray-900">Panduan Pemasangan APK</h3>
+              <button onClick={() => setShowApkGuide(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Fail APK sedang dimuat turun. Sila ikuti langkah berikut untuk memasang aplikasi:
+            </p>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                <span>Buka fail <strong>al-falah-app.apk</strong> yang telah dimuat turun.</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                <span>Jika peranti anda meminta kebenaran, pilih <strong>Tetapan (Settings)</strong> dan aktifkan <strong>"Benarkan dari sumber ini" (Allow from this source)</strong>.</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                <span>Tekan <strong>Pasang (Install)</strong> dan tunggu sehingga selesai.</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowApkGuide(false)}
+              className="w-full mt-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+            >
+              Faham
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

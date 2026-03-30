@@ -10,6 +10,8 @@ export default function PublicNav() {
   // PWA install prompt
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [showInstallOptions, setShowInstallOptions] = useState(false);
+  const [showApkGuide, setShowApkGuide] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -116,7 +118,7 @@ export default function PublicNav() {
 
             {/* Install App Button */}
             <button
-              onClick={() => { handleInstall(); setIsOpen(false); }}
+              onClick={() => { setShowInstallOptions(true); setIsOpen(false); }}
               className="flex items-center space-x-3 px-4 py-3 rounded-lg w-full text-left bg-white/10 hover:bg-emerald-700 transition-colors"
             >
               <Download className="h-5 w-5" />
@@ -128,32 +130,125 @@ export default function PublicNav() {
 
       {/* Install Guide Modal — shown when app is already installed or prompt unavailable */}
       {showInstallGuide && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setShowInstallGuide(false)}>
-          <div className="bg-white text-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] p-4" onClick={() => setShowInstallGuide(false)}>
+          <div className="bg-white text-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Muat Turun Aplikasi</h3>
+              <h3 className="text-lg font-bold">Panduan Pemasangan</h3>
               <button onClick={() => setShowInstallGuide(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
             </div>
             <p className="text-sm text-gray-600">
-              Aplikasi ini mungkin sudah dipasang di peranti anda. Jika belum, ikuti langkah berikut:
+              Aplikasi web ini mungkin sudah dipasang di peranti anda. Jika belum, ikuti langkah berikut:
             </p>
             <div className="space-y-3 text-sm">
               <div className="flex items-start space-x-3">
                 <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
-                <span>Buka laman web ini di <strong>Chrome</strong></span>
+                <span>Buka laman web ini di <strong>Chrome / Safari</strong></span>
               </div>
               <div className="flex items-start space-x-3">
                 <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
-                <span>Tekan ikon <strong>menu (⋮)</strong> di penjuru kanan atas</span>
+                <span>Tekan ikon <strong>Kongsi (Tap to Share)</strong> atau <strong>menu (⋮)</strong></span>
               </div>
               <div className="flex items-start space-x-3">
                 <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
-                <span>Pilih <strong>&quot;Pasang aplikasi&quot;</strong> atau <strong>&quot;Tambah ke Skrin Utama&quot;</strong></span>
+                <span>Pilih <strong>&quot;Tambah ke Skrin Utama / Add to Home Screen&quot;</strong></span>
               </div>
             </div>
             <button
               onClick={() => setShowInstallGuide(false)}
               className="w-full py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+            >
+              Faham
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Install Options Modal */}
+      {showInstallOptions && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] p-4" onClick={() => setShowInstallOptions(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-gray-900">Pilih Versi Aplikasi</h3>
+              <button onClick={() => setShowInstallOptions(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Aplikasi ini boleh dimuat turun sebagai aplikasi web ringan atau aplikasi Android penuh.
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowInstallOptions(false);
+                  handleInstall();
+                }}
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all flex items-start gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 shrink-0">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Aplikasi Web (PWA)</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Ringan, pantas, tanpa muat turun fail (iOS & Android)</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  window.location.href = "/downloads/al-falah-app.apk";
+                  setShowInstallOptions(false);
+                  setShowApkGuide(true);
+                }}
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all flex items-start gap-3"
+              >
+                <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 shrink-0">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Aplikasi Android (APK)</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Versi Android Penuh (Sila benarkan 'Unknown Sources' semasa memasang)</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* APK Install Guide Modal */}
+      {showApkGuide && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[60] p-4" onClick={() => setShowApkGuide(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold text-gray-900">Panduan Pemasangan APK</h3>
+              <button onClick={() => setShowApkGuide(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Fail APK sedang dimuat turun. Sila ikuti langkah berikut untuk memasang aplikasi:
+            </p>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                <span>Buka fail <strong>al-falah-app.apk</strong> yang telah dimuat turun.</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                <span>Jika peranti anda meminta kebenaran, pilih <strong>Tetapan (Settings)</strong> dan aktifkan <strong>"Benarkan dari sumber ini" (Allow from this source)</strong>.</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                <span>Tekan <strong>Pasang (Install)</strong> dan tunggu sehingga selesai.</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowApkGuide(false)}
+              className="w-full mt-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
             >
               Faham
             </button>
