@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ServiceWorkerRegister />
         {children}
+        <Analytics />
       </body>
     </html>
   );
