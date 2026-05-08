@@ -126,7 +126,7 @@ export default function RegisterPage() {
 
         {/* Form Section — wide modal */}
         <section ref={formRef} className="max-w-[1200px] mx-auto px-0 lg:px-4 lg:px-6 lg:px-8 py-0 lg:py-8 md:py-12">
-          <div className="animate-fade-in-up lg:bg-white/95 lg:rounded-3xl lg:shadow-2xl lg:shadow-black/20 lg:border lg:border-white/20">
+          <div className="animate-fade-in-up lg:bg-white/95 lg:rounded-3xl lg:overflow-hidden lg:shadow-2xl lg:shadow-black/20 lg:border lg:border-white/20">
             <KariahMapForm />
           </div>
 
