@@ -94,7 +94,7 @@ const quickActions = [
   { label: 'Kuliah', href: '/jadual-kuliah', icon: BookOpen, bg: 'bg-sky-50', iconBg: 'bg-sky-600', labelColor: 'text-sky-900' },
   { label: 'Derma', href: '/derma', icon: Heart, bg: 'bg-yellow-50', iconBg: 'bg-yellow-600', labelColor: 'text-yellow-900' },
   { label: 'Galeri', href: '/galeri', icon: ImageIcon, bg: 'bg-purple-50', iconBg: 'bg-purple-600', labelColor: 'text-purple-900' },
-  { label: 'Daftar', href: '/register', icon: UserPlus, bg: 'bg-teal-50', iconBg: 'bg-teal-600', labelColor: 'text-teal-900' },
+  { label: 'Daftar Anak Kariah', href: '/register', icon: UserPlus, bg: 'bg-teal-50', iconBg: 'bg-teal-600', labelColor: 'text-teal-900' },
   { label: 'Hubungi', href: '/contact', icon: Phone, bg: 'bg-gray-100', iconBg: 'bg-gray-500', labelColor: 'text-gray-700' },
 ];
 
