@@ -12,7 +12,7 @@ import {
 } from './notificationLogic.js';
 
 // Public site address, used for notification icons. Set with `firebase functions:config` prompts on deploy.
-export const APP_BASE_URL = defineString('APP_BASE_URL', { default: 'https://mymasjidapp.vercel.app' });
+export const APP_BASE_URL = defineString('APP_BASE_URL', { default: 'https://mosque-apps.vercel.app' });
 
 const FCM_BATCH_SIZE = 500;
 const PUSH_TTL_SECONDS = String(24 * 60 * 60);

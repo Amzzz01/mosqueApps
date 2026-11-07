@@ -39,7 +39,9 @@ initializeApp();
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 5 });
 
 const SCHEDULE = { timeZone: TIME_ZONE, timeoutSeconds: 300, memory: '512MiB' };
-const SEND_OPTIONS = { timeoutSeconds: 300, memory: '512MiB' };
+// Callables must be publicly invokable (the browser calls them); access is checked in code by requireNotifAdmin
+const CALLABLE = { invoker: 'public' };
+const SEND_OPTIONS = { ...CALLABLE, timeoutSeconds: 300, memory: '512MiB' };
 
 const loadGroupedTokens = async () => groupTokens(await loadAllTokenDocs());
 
@@ -105,7 +107,7 @@ export const sendNotification = onCall(SEND_OPTIONS, async (request) => {
 });
 
 /** Cancel a scheduled notification before it goes out. Input: { id }. */
-export const cancelScheduledNotification = onCall(async (request) => {
+export const cancelScheduledNotification = onCall(CALLABLE, async (request) => {
   await requireNotifAdmin(request);
   const { id } = request.data ?? {};
   if (!isValidId(id)) throw new HttpsError('invalid-argument', 'ID tidak sah.');
@@ -122,7 +124,7 @@ export const cancelScheduledNotification = onCall(async (request) => {
 });
 
 /** Push a test notification to the calling admin's own devices only (not saved to the list). */
-export const sendTestNotification = onCall(async (request) => {
+export const sendTestNotification = onCall(CALLABLE, async (request) => {
   const admin = await requireNotifAdmin(request);
   const snapshot = await getFirestore().collection(`users/${admin.uid}/fcmTokens`).get();
   const tokens = groupTokens(snapshot.docs.map(doc => ({ token: doc.data().token, ref: doc.ref, source: 'user' })));
