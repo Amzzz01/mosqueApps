@@ -8,6 +8,7 @@ import {
   DEAD_TOKEN_CODES,
   buildPushData,
   canSendNotifications,
+  cleanCategory,
   finalStatus,
 } from './notificationLogic.js';
 
@@ -123,12 +124,13 @@ export const deliverNotification = async (ref, groupedTokens) => {
  * Creates a notification doc (so it appears in the in-app list) and, unless dueAt is given,
  * sends it right away. Used by admin sends and by the automatic reminders.
  */
-export const createNotification = async ({ title, body, url, createdBy, source, dueAt = null }) => {
+export const createNotification = async ({ title, body, url, category, createdBy, source, dueAt = null }) => {
   const ref = notificationsCol().doc();
   await ref.set({
     title,
     body,
     url,
+    category: cleanCategory(category, url),
     recipientType: 'all',
     status: dueAt ? 'scheduled' : 'queued',
     ...(dueAt ? { dueAt, scheduledFor: dueAt } : {}),

@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   addDays,
   buildPrayerSummary,
+  buildPushData,
   canSendNotifications,
+  cleanCategory,
   cleanContent,
   cleanScheduleTime,
   cleanUrl,
@@ -14,6 +16,7 @@ import {
   isInQuietHours,
   malaysiaDayRange,
   notificationsEnabled,
+  pushTitle,
   quietHoursEnd,
   todayInMalaysia,
 } from './notificationLogic.js';
@@ -101,6 +104,28 @@ test('a notification with no devices still counts as sent', () => {
   assert.equal(finalStatus({ attempted: 0, sent: 0 }), 'sent');
   assert.equal(finalStatus({ attempted: 5, sent: 1 }), 'sent');
   assert.equal(finalStatus({ attempted: 5, sent: 0 }), 'failed');
+});
+
+test('category comes from the request, else from an announcements link, else general', () => {
+  assert.equal(cleanCategory('prayer', '/'), 'prayer');
+  assert.equal(cleanCategory(undefined, '/announcements'), 'announcement');
+  assert.equal(cleanCategory('hack', '/derma'), 'general');
+  assert.equal(cleanCategory('__proto__', '/'), 'general');
+});
+
+test('title gets the type label once, without repeating it', () => {
+  assert.equal(pushTitle('Majlis Ilmu Malam Jumaat', 'announcement'), 'Pengumuman · Majlis Ilmu Malam Jumaat');
+  assert.equal(pushTitle('Waktu Solat Hari Ini', 'prayer'), 'Waktu Solat Hari Ini');
+  assert.equal(pushTitle('Aktiviti Esok: Gotong-royong', 'activity'), 'Aktiviti Esok: Gotong-royong');
+});
+
+test('push data carries the type and its button label', () => {
+  const data = buildPushData('n1', { title: 'Peringatan Bulanan', body: 'b', url: '/derma', category: 'donation' }, 'https://x');
+  assert.equal(data.title, 'Derma · Peringatan Bulanan');
+  assert.equal(data.action, 'Derma sekarang');
+  assert.equal(data.category, 'donation');
+  assert.equal(data.tag, 'n1');
+  assert.ok(Object.values(data).every(v => typeof v === 'string'));
 });
 
 test('master switch is on unless explicitly turned off', () => {

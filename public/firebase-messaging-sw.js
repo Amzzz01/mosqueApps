@@ -30,21 +30,30 @@ self.addEventListener('push', (event) => {
   const link = fcmData.link || fcmData.url || '/';
   const tag = fcmData.tag || fcmData.notifId || 'masjid-notification';
 
+  // Android already shows the app icon on the left; `icon` would repeat it on the right
+  const isAndroid = /Android/i.test(self.navigator.userAgent);
+  const icon = fcmData.icon || (self.location.origin + '/icons/icon-192x192.png');
+
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: fcmData.icon || (self.location.origin + '/icons/icon-192x192.png'),
+      ...(isAndroid ? {} : { icon }),
       badge: fcmData.badge || (self.location.origin + '/icons/badge-72x72.png'),
       data: { url: link, link, notifId: fcmData.notifId || '' },
       tag,
       renotify: true,
       vibrate: [200, 100, 200],
+      actions: [
+        { action: 'open', title: fcmData.action || 'Buka' },
+        { action: 'close', title: 'Tutup' },
+      ],
     })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if (event.action === 'close') return;
   const data = event.notification.data || {};
   const url = new URL(data.link || data.url || '/', self.location.origin).href;
   event.waitUntil(self.clients.openWindow(url));

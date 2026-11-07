@@ -46,9 +46,13 @@ self.addEventListener('push', (event) => {
 
   console.log('[SW] Showing notification:', title, '|', body);
 
+  // Android already shows the app icon on the left; adding `icon` repeats it on the right.
+  // Desktop browsers still need it, otherwise they show the browser logo.
+  const isAndroid = /Android/i.test(self.navigator.userAgent);
+
   const options = {
     body,
-    icon,
+    ...(isAndroid ? {} : { icon }),
     badge,
     data: { url: link, link, notifId: fcmData.notifId || '' },
     tag,
@@ -58,6 +62,11 @@ self.addEventListener('push', (event) => {
     timestamp: Date.now(),
     dir: 'ltr',
     lang: 'ms-MY',
+    // Main button depends on the type (Baca, Lihat waktu, Derma sekarang…); Tutup just closes
+    actions: [
+      { action: 'open', title: fcmData.action || 'Buka' },
+      { action: 'close', title: 'Tutup' },
+    ],
   };
 
   event.waitUntil(
@@ -67,8 +76,9 @@ self.addEventListener('push', (event) => {
 
 // ─── Notification click → open / focus app ───
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.notification.tag);
+  console.log('[SW] Notification clicked:', event.notification.tag, event.action);
   event.notification.close();
+  if (event.action === 'close') return;
 
   const data = event.notification.data || {};
   const urlToOpen = new URL(data.link || data.url || '/', self.location.origin).href;

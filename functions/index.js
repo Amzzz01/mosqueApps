@@ -55,7 +55,8 @@ const loadSettingsIfEnabled = async () => {
 
 /** Creates and immediately sends an automatic notification (reminders bypass quiet hours by design). */
 const sendAutomatic = async ({ title, body, url, source }) => {
-  const ref = await createNotification({ title, body, url, createdBy: 'system', source });
+  // The source doubles as the notification type: prayer, activity, donation
+  const ref = await createNotification({ title, body, url, category: source, createdBy: 'system', source });
   return deliverNotification(ref, await loadGroupedTokens());
 };
 
@@ -93,6 +94,8 @@ export const sendNotification = onCall(SEND_OPTIONS, async (request) => {
   const ref = await createNotification({
     ...content,
     url,
+    // Optional { category }; announcements are recognised from their /announcements link
+    category: request.data?.category,
     createdBy: admin.uid,
     source: 'admin',
     dueAt: dueMs ? Timestamp.fromMillis(dueMs) : null,
@@ -133,9 +136,10 @@ export const sendTestNotification = onCall(CALLABLE, async (request) => {
   }
 
   const data = buildPushData('', {
-    title: '🔔 Notifikasi Ujian',
+    title: 'Notifikasi Ujian',
     body: 'Jika anda nampak ini, notifikasi berfungsi dengan baik.',
     url: '/admin/settings/notifications',
+    category: 'general',
   }, APP_BASE_URL.value());
   const result = await pushToTokens(tokens, data);
   return { devices: tokens.length, ...result };
@@ -215,7 +219,7 @@ export const sendPrayerSummary = onSchedule({ ...SCHEDULE, schedule: '0 5 * * *'
   if (!(await markOnce('prayerSentLog', `${todayInMalaysia()}_daily`))) return;
 
   await sendAutomatic({
-    title: '🕌 Waktu Solat Hari Ini',
+    title: 'Waktu Solat Hari Ini',
     body: buildPrayerSummary(times),
     url: '/prayer-times',
     source: 'prayer',
@@ -276,7 +280,7 @@ export const sendDonationReminder = onSchedule({ ...SCHEDULE, schedule: '0 9 * *
   if (!(await markOnce('donationSentLog', monthInMalaysia()))) return;
 
   await sendAutomatic({
-    title: 'Peringatan Derma Bulanan',
+    title: 'Derma: Peringatan Bulanan',
     body: 'Assalamualaikum. Ini adalah peringatan untuk sumbangan bulanan anda. Semoga Allah memberkati.',
     url: '/derma',
     source: 'donation',

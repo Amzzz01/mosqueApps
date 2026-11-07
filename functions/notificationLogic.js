@@ -142,17 +142,45 @@ export const DEAD_TOKEN_CODES = new Set([
   'messaging/invalid-registration-token',
 ]);
 
+// ─── Notification types (label shown at the start of the title, plus the main button) ───
+
+export const CATEGORIES = {
+  announcement: { label: 'Pengumuman', action: 'Baca' },
+  prayer: { label: 'Waktu Solat', action: 'Lihat waktu' },
+  activity: { label: 'Aktiviti', action: 'Lihat butiran' },
+  donation: { label: 'Derma', action: 'Derma sekarang' },
+  general: { label: 'Makluman', action: 'Buka' },
+};
+
+/** A known category, else one worked out from the link (announcements), else 'general'. */
+export const cleanCategory = (category, url) => {
+  if (typeof category === 'string' && Object.hasOwn(CATEGORIES, category)) return category;
+  if (typeof url === 'string' && url.startsWith('/announcements')) return 'announcement';
+  return 'general';
+};
+
+/** 'Pengumuman · Majlis Ilmu', unless the title already starts with the label ('Waktu Solat Hari Ini'). */
+export const pushTitle = (title, category) => {
+  const { label } = CATEGORIES[category] ?? CATEGORIES.general;
+  return title.toLowerCase().startsWith(label.toLowerCase()) ? title : `${label} · ${title}`;
+};
+
 /** All FCM data values must be strings. Keys match worker/index.js. */
-export const buildPushData = (notifId, { title, body, url }, baseUrl) => ({
-  title,
-  body,
-  url: url || '/',
-  link: url || '/',
-  notifId: notifId || '',
-  tag: notifId || 'masjid-notification',
-  icon: `${baseUrl}/icons/icon-192x192.png`,
-  badge: `${baseUrl}/icons/badge-72x72.png`,
-});
+export const buildPushData = (notifId, { title, body, url, category }, baseUrl) => {
+  const type = cleanCategory(category, url);
+  return {
+    title: pushTitle(title, type),
+    body,
+    url: url || '/',
+    link: url || '/',
+    category: type,
+    action: CATEGORIES[type].action,
+    notifId: notifId || '',
+    tag: notifId || 'masjid-notification',
+    icon: `${baseUrl}/icons/icon-192x192.png`,
+    badge: `${baseUrl}/icons/badge-72x72.png`,
+  };
+};
 
 /** Final status of a delivered notification. No devices still counts as sent (it shows in the in-app list). */
 export const finalStatus = ({ attempted, sent }) => (attempted === 0 || sent > 0 ? 'sent' : 'failed');
