@@ -1,10 +1,11 @@
 // lib/notifications.ts
 import {
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
-  query, orderBy, limit, where, serverTimestamp, Timestamp,
+  collection, doc, getDoc, getDocs, updateDoc, deleteDoc,
+  query, orderBy, limit, serverTimestamp, Timestamp,
   onSnapshot, Unsubscribe,
 } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { db } from '@/lib/firebase/config';
+import { callFunction } from '@/lib/firebase/functions';
 
 // ─── Types ───
 export interface NotificationData {
@@ -15,7 +16,7 @@ export interface NotificationData {
   recipientIds?: string[];
   topic?: string;
   url?: string;
-  status: 'pending' | 'sent' | 'failed' | 'scheduled';
+  status: 'pending' | 'queued' | 'sending' | 'sent' | 'failed' | 'scheduled' | 'cancelled';
   scheduledFor?: Date | Timestamp | null;
   sentAt?: Date | Timestamp | null;
   sentCount?: number;
@@ -36,6 +37,8 @@ export interface NotificationSettings {
   quietHoursEnabled: boolean;
   quietHoursStart: string; // HH:MM
   quietHoursEnd: string;   // HH:MM
+  /** Master switch, super admin only. Missing/true = on. Saved only via setNotificationsEnabled. */
+  notificationsEnabled?: boolean;
 }
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
@@ -62,8 +65,11 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
 }
 
 export async function saveNotificationSettings(
-  settings: Partial<NotificationSettings>
+  allSettings: Partial<NotificationSettings>
 ): Promise<void> {
+  // The master switch is never saved from here, so a stale page can't undo the super admin's choice
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { notificationsEnabled, ...settings } = allSettings;
   const ref = doc(db, 'settings', 'notifications');
   await updateDoc(ref, { ...settings, updatedAt: serverTimestamp() }).catch(async () => {
     // Doc may not exist yet — create it
@@ -72,97 +78,76 @@ export async function saveNotificationSettings(
   });
 }
 
-// ─── Send Notification via API ───
+/** Super admin only (enforced by Firestore rules). Turns every notification on or off. */
+export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
+  const { setDoc } = await import('firebase/firestore');
+  await setDoc(
+    doc(db, 'settings', 'notifications'),
+    { notificationsEnabled: enabled, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+// ─── Send / schedule via Cloud Functions (functions/index.js) ───
+// The server creates the notification doc, checks the admin role and applies quiet hours.
+
+export interface SendResult {
+  id: string;
+  /** True when it was scheduled, either by the admin or because quiet hours are on. */
+  scheduled: boolean;
+  /** True when a "send now" was held back until quiet hours end. */
+  deferred: boolean;
+  dueAt?: string;
+  sent: number;
+  failed: number;
+  cleaned: number;
+  attempted?: number;
+}
+
 export async function sendNotification(data: {
   title: string;
   body: string;
-  recipientType: string;
-  recipientIds?: string[];
-  topic?: string;
   url?: string;
-  createdBy: string;
-}): Promise<{ id: string; sent: number; failed: number; cleaned: number }> {
-  // Create single notification doc in Firestore (API will update this same doc)
-  const notifRef = await addDoc(collection(db, 'notifications'), {
+  /** Kept for existing callers; every notification goes to all registered devices. */
+  recipientType?: string;
+  createdBy?: string;
+}): Promise<SendResult> {
+  return callFunction<object, SendResult>('sendNotification', {
     title: data.title,
     body: data.body,
-    recipientType: data.recipientType,
-    ...(data.recipientIds ? { recipientIds: [...new Set(data.recipientIds)] } : {}),
-    ...(data.topic ? { topic: data.topic } : {}),
     url: data.url || '/',
-    createdBy: data.createdBy,
-    status: 'pending',
-    readBy: [],
-    sentCount: 0,
-    failedCount: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
   });
-
-  // Call API to send — pass notifId so API updates this doc instead of creating a new one
-  try {
-    const token = await auth.currentUser?.getIdToken();
-    const res = await fetch('/api/notifications/send', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        title: data.title,
-        body: data.body,
-        recipientType: data.recipientType || 'all',
-        url: data.url || '/',
-        ...(data.topic ? { topic: data.topic } : {}),
-        notifId: notifRef.id,
-      }),
-    });
-
-    const result = await res.json();
-
-    if (res.ok) {
-      // API already updated the doc — just return the result
-      return { id: notifRef.id, sent: result.sent || 0, failed: result.failed || 0, cleaned: result.cleaned || 0 };
-    } else {
-      await updateDoc(doc(db, 'notifications', notifRef.id), {
-        status: 'failed',
-        updatedAt: serverTimestamp(),
-      });
-      throw new Error(result.error || 'Gagal menghantar notifikasi');
-    }
-  } catch (err) {
-    await updateDoc(doc(db, 'notifications', notifRef.id), {
-      status: 'failed',
-      updatedAt: serverTimestamp(),
-    });
-    throw err;
-  }
 }
 
-// ─── Schedule Notification ───
 export async function scheduleNotification(data: {
   title: string;
   body: string;
-  recipientType: string;
   scheduledFor: Date;
   url?: string;
-  createdBy: string;
+  recipientType?: string;
+  createdBy?: string;
 }): Promise<string> {
-  const notifRef = await addDoc(collection(db, 'notifications'), {
+  const result = await callFunction<object, SendResult>('sendNotification', {
     title: data.title,
     body: data.body,
-    recipientType: data.recipientType,
     url: data.url || '/',
-    status: 'scheduled',
-    scheduledFor: Timestamp.fromDate(data.scheduledFor),
-    readBy: [],
-    sentCount: 0,
-    failedCount: 0,
-    createdBy: data.createdBy,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    scheduleAt: data.scheduledFor.toISOString(),
   });
-  return notifRef.id;
+  return result.id;
+}
+
+export async function cancelScheduledNotification(id: string): Promise<void> {
+  await callFunction('cancelScheduledNotification', { id });
+}
+
+/** Pushes a test notification to the signed-in admin's own devices. */
+export async function sendTestPush(): Promise<{ devices: number; sent: number; failed: number }> {
+  return callFunction('sendTestNotification');
+}
+
+/** Validates every saved device token and deletes dead ones. */
+export async function cleanupTokens(): Promise<{ totalScanned: number; valid: number; invalid: number; deleted: number }> {
+  return callFunction('cleanupTokens');
 }
 
 export function subscribeToNotifications(

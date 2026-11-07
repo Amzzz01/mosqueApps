@@ -137,34 +137,21 @@ export async function sendTestNotification(): Promise<{ success: boolean; logs: 
       return { success: false, logs };
     }
 
-    // Step 4: send via FCM API (same path as real notifications)
-    logs.push('Menghantar ke /api/notifications/send...');
-    const res = await fetch('/api/notifications/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Notifikasi Ujian',
-        body: 'Ini ujian melalui FCM — sama seperti notifikasi sebenar',
-        recipientType: 'all',
-        url: '/',
-      }),
-    });
-
-    // Step 5: parse and log API response
-    const result = await res.json();
-    logs.push(`Status API: ${res.status}`);
-    logs.push(`Dihantar: ${result.sent ?? '?'}, Gagal: ${result.failed ?? '?'}, Jumlah: ${result.total ?? '?'}`);
-    if (result.message) {
-      logs.push(`Mesej: ${result.message}`);
+    // Step 4: save this device under the signed-in admin, then push to the admin's own devices only
+    const { auth } = await import('@/lib/firebase/config');
+    const { saveFCMToken } = await import('@/lib/firebase-messaging');
+    const { sendTestPush } = await import('@/lib/notifications');
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      logs.push('✗ Sila log masuk sebagai admin');
+      return { success: false, logs };
     }
-    if (result.errors?.length) {
-      for (const e of result.errors) {
-        logs.push(`Ralat token: code=${e.code} source=${e.source} cleaned=${e.cleaned}`);
-      }
-    }
+    await saveFCMToken(uid, token);
+    logs.push('Menghantar notifikasi ujian ke peranti anda sahaja...');
 
-    // Step 6: return based on sent count
-    return { success: (result.sent ?? 0) > 0, logs };
+    const result = await sendTestPush();
+    logs.push(`Peranti: ${result.devices}, Dihantar: ${result.sent}, Gagal: ${result.failed}`);
+    return { success: result.sent > 0, logs };
 
   } catch (err) {
     logs.push(`✗ Ralat tidak dijangka: ${err instanceof Error ? err.message : String(err)}`);

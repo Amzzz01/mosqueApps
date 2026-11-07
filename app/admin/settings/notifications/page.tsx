@@ -14,9 +14,9 @@ import { testNotificationPermissions, sendTestNotification } from '@/lib/notific
 import {
   NotificationSettings, NotificationData, DEFAULT_SETTINGS,
   getNotificationSettings, saveNotificationSettings,
-  sendNotification, scheduleNotification,
+  sendNotification, scheduleNotification, cancelScheduledNotification,
   subscribeToNotifications, deleteNotification,
-  getNotificationStats,
+  getNotificationStats, cleanupTokens, setNotificationsEnabled,
 } from '@/lib/notifications';
 import { MALAYSIA_ZONES } from '@/lib/api/jakim';
 import NotificationPreview from '@/components/admin/NotificationPreview';
@@ -69,6 +69,19 @@ function statusBadge(status: string) {
           <Clock className="w-3 h-3" /> Dijadualkan
         </span>
       );
+    case 'cancelled':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
+          <XCircle className="w-3 h-3" /> Dibatalkan
+        </span>
+      );
+    case 'sending':
+    case 'queued':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">
+          <Loader2 className="w-3 h-3 animate-spin" /> Menghantar
+        </span>
+      );
     default:
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">
@@ -108,8 +121,6 @@ export default function NotificationsPage() {
   // ─── Send State ───
   const [sendTitle, setSendTitle] = useState('');
   const [sendBody, setSendBody] = useState('');
-  const [recipientType, setRecipientType] = useState('all');
-  const [topic, setTopic] = useState('');
   const [sendUrl, setSendUrl] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDateTime, setScheduledDateTime] = useState('');
@@ -155,6 +166,69 @@ export default function NotificationsPage() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  // ─── Master switch (super admin only) ───
+  const isSuperAdmin = user?.role === 'super_admin';
+  const notificationsOn = settings.notificationsEnabled !== false;
+  const [masterSaving, setMasterSaving] = useState(false);
+
+  const handleToggleMaster = async () => {
+    if (!isSuperAdmin) return;
+    const next = !notificationsOn;
+    if (!next && !confirm('Matikan SEMUA notifikasi? Tiada notifikasi (manual atau automatik) akan dihantar sehingga dihidupkan semula. Notifikasi berjadual akan menunggu.')) return;
+    setMasterSaving(true);
+    try {
+      await setNotificationsEnabled(next);
+      setSettings(prev => ({ ...prev, notificationsEnabled: next }));
+      toast.success(next ? 'Semua notifikasi dihidupkan' : 'Semua notifikasi dimatikan');
+    } catch {
+      toast.error('Gagal menukar suis notifikasi');
+    } finally {
+      setMasterSaving(false);
+    }
+  };
+
+  const masterSwitchCard = (
+    <div className={`rounded-2xl border p-4 shadow-sm ${notificationsOn ? 'bg-white border-slate-200' : 'bg-red-50 border-red-200'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            Semua Notifikasi
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            {notificationsOn
+              ? 'Hidup — notifikasi manual dan automatik dihantar seperti biasa.'
+              : 'Mati — tiada notifikasi dihantar. Notifikasi berjadual akan menunggu.'}
+          </p>
+          {!isSuperAdmin && (
+            <p className="text-[11px] text-slate-400 mt-1">Hanya Super Admin boleh menukar suis ini.</p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={handleToggleMaster}
+          disabled={!isSuperAdmin || masterSaving || settingsLoading}
+          aria-label={notificationsOn ? 'Matikan semua notifikasi' : 'Hidupkan semua notifikasi'}
+          className={`w-12 h-7 rounded-full flex items-center px-0.5 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
+            notificationsOn ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+          }`}
+        >
+          <span className="w-6 h-6 bg-white rounded-full shadow-sm block" />
+        </button>
+      </div>
+    </div>
+  );
+
+  const notificationsOffBanner = !notificationsOn && (
+    <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+      <span>
+        Semua notifikasi dimatikan oleh Super Admin. &quot;Hantar sekarang&quot; tidak akan berfungsi;
+        notifikasi berjadual akan dihantar selepas suis dihidupkan semula.
+      </span>
+    </div>
+  );
+
   const handleSaveSettings = async () => {
     setSettingsSaving(true);
     try {
@@ -173,25 +247,15 @@ export default function NotificationsPage() {
     setCleaning(true);
     setCleanupResult(null);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/notifications/cleanup', {
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCleanupResult(data);
-        if (data.deleted > 0) {
-          toast.success(`Pembersihan selesai: ${data.deleted} token tidak sah dipadam daripada ${data.totalScanned} diimbas`);
-        } else {
-          toast.success(`Semua ${data.valid} token adalah sah. Tiada yang perlu dipadam.`);
-        }
+      const data = await cleanupTokens();
+      setCleanupResult(data);
+      if (data.deleted > 0) {
+        toast.success(`Pembersihan selesai: ${data.deleted} token tidak sah dipadam daripada ${data.totalScanned} diimbas`);
       } else {
-        toast.error(data.error || 'Gagal membersihkan token');
+        toast.success(`Semua ${data.valid} token adalah sah. Tiada yang perlu dipadam.`);
       }
-    } catch {
-      toast.error('Gagal menghubungi pelayan');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal membersihkan token');
     } finally {
       setCleaning(false);
     }
@@ -258,7 +322,6 @@ export default function NotificationsPage() {
       return;
     }
 
-    const uid = auth.currentUser?.uid || 'admin';
     setSending(true);
 
     try {
@@ -269,25 +332,21 @@ export default function NotificationsPage() {
         const id = await scheduleNotification({
           title: sendTitle.trim(),
           body: sendBody.trim(),
-          recipientType,
           scheduledFor: new Date(scheduledDateTime),
           url: sendUrl.trim() || '/',
-          createdBy: uid,
         });
         toast.success(`Notifikasi dijadualkan (ID: ${id.slice(0, 6)}...)`);
       } else {
-        console.log('[Send] Sending notification now...');
         const result = await sendNotification({
           title: sendTitle.trim(),
           body: sendBody.trim(),
-          recipientType,
-          topic: topic || undefined,
           url: sendUrl.trim() || '/',
-          createdBy: uid,
         });
-        console.log('[Send] Result:', JSON.stringify(result));
         const total = result.sent + (result.failed || 0);
-        if (total === 0) {
+        if (result.deferred && result.dueAt) {
+          const time = new Date(result.dueAt).toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+          toast.success(`Waktu senyap aktif. Notifikasi akan dihantar pada ${time}.`, { duration: 6000 });
+        } else if (total === 0) {
           toast.error('Tiada peranti berdaftar untuk menerima notifikasi. Pastikan pengguna telah membenarkan notifikasi.', { duration: 6000 });
         } else if (result.sent === 0) {
           toast.error(`Gagal menghantar ke semua ${total} peranti. ${result.cleaned || 0} token tidak sah dipadam.`, { duration: 6000 });
@@ -303,8 +362,6 @@ export default function NotificationsPage() {
       // Reset form
       setSendTitle('');
       setSendBody('');
-      setRecipientType('all');
-      setTopic('');
       setSendUrl('');
       setIsScheduled(false);
       setScheduledDateTime('');
@@ -321,6 +378,17 @@ export default function NotificationsPage() {
   };
 
   // ─── History Handlers ───
+  const handleCancelScheduled = async (id: string, title: string) => {
+    if (!confirm(`Batalkan notifikasi berjadual "${title}"?`)) return;
+    try {
+      await cancelScheduledNotification(id);
+      toast.success('Notifikasi berjadual dibatalkan');
+      getNotificationStats().then(setStats).catch(() => {});
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal membatalkan notifikasi');
+    }
+  };
+
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Padam notifikasi "${title}"?`)) return;
     try {
@@ -438,6 +506,8 @@ export default function NotificationsPage() {
                 </div>
               ) : (
                 <>
+                  {masterSwitchCard}
+
                   {/* Auto notifications */}
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Kawalan Broadcast Automatik (Sistem)</p>
                   <div className="bg-white rounded-2xl px-4 py-1 shadow-sm divide-y divide-slate-100">
@@ -547,6 +617,7 @@ export default function NotificationsPage() {
           {/* ══════════ HANTAR TAB ══════════ */}
           {activeTab === 'send' && (
             <>
+              {notificationsOffBanner}
               <div className="bg-white rounded-2xl px-4 py-4 shadow-sm space-y-4">
                 {/* Title */}
                 <div>
@@ -574,22 +645,16 @@ export default function NotificationsPage() {
                 {/* Recipient */}
                 <div>
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Penerima</label>
-                  <select
-                    value={recipientType}
-                    onChange={e => setRecipientType(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none"
-                  >
-                    <option value="all">Semua Pengguna</option>
-                    <option value="members">Ahli Aktif</option>
-                    <option value="donors">Penderma</option>
-                  </select>
+                  <p className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-500">
+                    Semua peranti yang membenarkan notifikasi
+                  </p>
                 </div>
                 {/* URL */}
                 <div>
                   <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">URL (opsional)</label>
                   <input
-                    type="url"
-                    placeholder="https://..."
+                    type="text"
+                    placeholder="cth: /announcements"
                     value={sendUrl}
                     onChange={e => setSendUrl(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 h-10 text-xs text-slate-700 outline-none placeholder:text-slate-300"
@@ -713,6 +778,14 @@ export default function NotificationsPage() {
                           />
                           <p className="text-xs font-bold text-slate-900 leading-tight">{n.title}</p>
                         </label>
+                        {n.status === 'scheduled' && (
+                          <button
+                            onClick={() => handleCancelScheduled(n.id!, n.title)}
+                            className="h-7 px-2 rounded-xl bg-amber-50 text-amber-700 text-[10px] font-semibold flex-shrink-0"
+                          >
+                            Batal
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDelete(n.id!, n.title)}
                           className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0"
@@ -802,6 +875,8 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <>
+              {masterSwitchCard}
+
               {/* Section label */}
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Kawalan Broadcast Automatik (Sistem)</h2>
@@ -1155,6 +1230,7 @@ export default function NotificationsPage() {
       {activeTab === 'send' && (
         <div className="grid lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 space-y-5">
+            {notificationsOffBanner}
             <div className="bg-white rounded-lg shadow-sm border p-5 space-y-5">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-600" />
@@ -1196,35 +1272,9 @@ export default function NotificationsPage() {
               {/* Recipient */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Penerima</label>
-                <select
-                  value={recipientType}
-                  onChange={e => setRecipientType(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  disabled={sending}
-                >
-                  <option value="all">Semua Pengguna</option>
-                  <option value="members">Ahli Aktif</option>
-                  <option value="sponsors">Penaja Anak Kariah</option>
-                  <option value="donors">Penderma</option>
-                </select>
-              </div>
-
-              {/* Topic */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Topik (Opsional)</label>
-                <select
-                  value={topic}
-                  onChange={e => setTopic(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  disabled={sending}
-                >
-                  <option value="">Tiada topik</option>
-                  <option value="announcements">Pengumuman</option>
-                  <option value="events">Aktiviti</option>
-                  <option value="prayer">Waktu Solat</option>
-                  <option value="donations">Derma</option>
-                  <option value="kuliah">Kuliah</option>
-                </select>
+                <p className="px-4 py-2 border rounded-lg bg-gray-50 text-sm text-gray-600">
+                  Semua peranti yang membenarkan notifikasi
+                </p>
               </div>
 
               {/* URL */}
@@ -1381,6 +1431,14 @@ export default function NotificationsPage() {
                       <span className="text-xs text-gray-500">
                         {n.sentCount ?? 0} dihantar
                       </span>
+                      {n.status === 'scheduled' && (
+                        <button
+                          onClick={() => handleCancelScheduled(n.id!, n.title)}
+                          className="ml-auto mr-2 text-xs font-medium text-amber-700 hover:text-amber-900"
+                        >
+                          Batal
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(n.id!, n.title)}
                         className="text-red-500 hover:text-red-700 p-1"
@@ -1441,7 +1499,16 @@ export default function NotificationsPage() {
                           <td className="px-4 py-3 text-center">
                             {statusBadge(n.status)}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                            {n.status === 'scheduled' && (
+                              <button
+                                onClick={() => handleCancelScheduled(n.id!, n.title)}
+                                className="text-amber-700 hover:text-amber-900 text-xs font-medium px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors"
+                                title="Batal"
+                              >
+                                Batal
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDelete(n.id!, n.title)}
                               className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"

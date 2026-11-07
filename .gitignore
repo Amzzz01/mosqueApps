@@ -57,3 +57,5 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+# Cloud Functions
+/functions/node_modules

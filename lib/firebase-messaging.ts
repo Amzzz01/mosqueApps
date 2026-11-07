@@ -244,6 +244,26 @@ export async function saveGuestFCMToken(token: string): Promise<void> {
 }
 
 /**
+ * Before an admin signs out: stop sending admin pushes to this device and keep it
+ * registered as a guest, so it still gets public notifications (MyMotoLog unregisterPushToken pattern).
+ * Must run while still signed in, because Firestore rules only let the owner delete the token.
+ */
+export async function moveTokenToGuest(uid: string): Promise<void> {
+  let registered: string | null = null;
+  try { registered = localStorage.getItem('masjid_pushTokenRegistered'); } catch { /* storage blocked */ }
+  if (!registered?.startsWith(`${uid}|`)) return;
+
+  const token = registered.slice(uid.length + 1);
+  try {
+    await deleteDoc(doc(db, 'users', uid, 'fcmTokens', token));
+    await saveGuestFCMToken(token);
+    localStorage.setItem('masjid_pushTokenRegistered', `guest|${token}`);
+  } catch (err) {
+    console.warn('[FCM] Could not move token to guest on logout:', err);
+  }
+}
+
+/**
  * Listen for foreground messages.
  * Returns a cleanup function.
  */

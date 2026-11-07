@@ -76,6 +76,11 @@ export async function signInAdmin(email: string, password: string): Promise<Admi
  */
 export async function signOutAdmin(): Promise<void> {
   try {
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      const { moveTokenToGuest } = await import('./firebase-messaging');
+      await moveTokenToGuest(uid);
+    }
     await signOut(auth);
   } catch (error) {
     console.error('Error signing out:', error);
@@ -193,14 +198,19 @@ export async function registerAdmin(
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Create admin record in Firestore
-    await setDoc(doc(db, 'adminUsers', user.uid), {
-      email: user.email,
-      displayName,
-      role: 'admin',
-      active: true,
-      createdAt: serverTimestamp(),
+    // Create admin record on the server (Firestore rules block creating it from the browser)
+    const idToken = await user.getIdToken();
+    const registerRes = await fetch('/api/admin/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ key: registrationKey, displayName }),
     });
+    if (!registerRes.ok) {
+      const registerData = await registerRes.json().catch(() => ({}));
+      // Don't leave a login with no admin record behind
+      await user.delete().catch(() => undefined);
+      throw new Error(registerData.error || 'Gagal mendaftar admin');
+    }
 
     // Sign out after registration - user should log in manually
     await signOut(auth);

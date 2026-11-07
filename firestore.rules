@@ -6,6 +6,34 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function adminData() {
+      return get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data;
+    }
+
+    function isActiveAdmin() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))
+        && adminData().get('active', false) == true;
+    }
+
+    function isSuperAdmin() {
+      return isActiveAdmin() && adminData().get('role', '') == 'super_admin';
+    }
+
+    function canDeleteNotifications() {
+      return isSuperAdmin()
+        || (isActiveAdmin()
+            && adminData().get('permissions', {}).get('Notifikasi', {}).get('delete', false) == true);
+    }
+
+    // The update only adds the caller's own uid to `field` and removes nothing
+    function onlyAddsSelfTo(field) {
+      let before = resource.data.get(field, []).toSet();
+      let after = request.resource.data.get(field, []).toSet();
+      return after.difference(before).hasOnly([request.auth.uid])
+        && before.difference(after).size() == 0;
+    }
+
     match /activities/{docId} {
       allow get: if true;
       allow list: if true;
@@ -57,37 +85,52 @@ service cloud.firestore {
       allow write: if isAuth();
     }
 
+    // Admin records are created only by the server (/api/admin/register).
+    // An admin may edit their own name/photo; role, permissions and active are super admin only.
     match /adminUsers/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth() && (request.auth.uid == docId || isActiveAdmin());
+      allow create: if false;
+      allow update: if isSuperAdmin()
+        || (isAuth() && request.auth.uid == docId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL']));
+      allow delete: if isSuperAdmin();
     }
 
+    // Created and sent only by Cloud Functions (functions/index.js).
+    // Signed-in admins may only mark items read/deleted for themselves.
     match /notifications/{docId} {
       allow read: if true;
-      allow create: if isAuth();
-      allow update: if true;
-      allow delete: if isAuth();
+      allow create: if false;
+      allow update: if isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'deletedBy'])
+        && onlyAddsSelfTo('readBy')
+        && onlyAddsSelfTo('deletedBy');
+      allow delete: if canDeleteNotifications();
     }
 
     match /settings/{docId} {
       allow read: if true;             // public can read settings (e.g. derma page)
-      allow write: if isAuth();
+      allow delete: if isAuth() && docId != 'notifications';
+      // The notifications master switch can only be changed by a super admin
+      allow create, update: if isAuth()
+        && (docId != 'notifications'
+            || isSuperAdmin()
+            || !request.resource.data.diff(resource == null ? {} : resource.data)
+                  .affectedKeys().hasAny(['notificationsEnabled']));
     }
 
     // Authenticated users' FCM tokens (multi-device support)
+    // Only the owner can see or change their device tokens; Cloud Functions read them with the Admin SDK
     match /users/{userId}/fcmTokens/{tokenId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
-      allow delete: if (isAuth() && request.auth.uid == userId) || true;
-    }
-
-    // CollectionGroup query support for FCM tokens
-    match /{path=**}/fcmTokens/{tokenId} {
-      allow read: if isAuth();
+      allow read, delete: if isAuth() && request.auth.uid == userId;
+      allow create, update: if isAuth() && request.auth.uid == userId
+        && request.resource.data.token == tokenId;
     }
 
     // Guest/public FCM tokens — allows ANY device without login to register for notifications
     match /guestTokens/{tokenId} {
-      allow create, update: if true
-        && request.resource.data.token is string;
+      allow create, update: if request.resource.data.token is string
+        && request.resource.data.token == tokenId;
       allow read, delete: if false;    // Only Admin SDK (server) can read/delete
     }
 

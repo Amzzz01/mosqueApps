@@ -10,6 +10,7 @@ import { auth } from '@/lib/firebase/config';
 import {
   requestNotificationPermission,
   saveFCMToken,
+  saveGuestFCMToken,
 } from '@/lib/firebase-messaging';
 import toast from 'react-hot-toast';
 
@@ -46,8 +47,11 @@ export default function NotificationPermission() {
     setPermissionState(Notification.permission);
 
     if (token) {
+      // Guests (most visitors) must be saved too, otherwise desktop visitors never receive pushes
       if (user) {
         await saveFCMToken(user.uid, token);
+      } else {
+        await saveGuestFCMToken(token);
       }
       toast.success('Notifikasi diaktifkan');
     } else if (Notification.permission === 'denied') {
